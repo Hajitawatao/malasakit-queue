@@ -1,0 +1,56 @@
+MALASAKIT QUEUEING SYSTEM - R1MC
+================================
+
+KAILANGAN
+  - XAMPP na may PHP 8.2 o mas bago (C:\xampp)
+  - Internet sa unang setup lang (para i-download ang PHP packages)
+  - Hindi na kailangan ng Composer o Node; kasama na ang compiled frontend.
+
+UNANG BESES
+  1. I-extract ang folder sa Desktop (o kahit saan).
+  2. Buksan ang XAMPP Control Panel > START ang MySQL.
+     (Hindi kailangan ang Apache.)
+  3. I-right-click ang setup.bat > Run as administrator
+     (administrator para mabuksan ang firewall ports 88 at 6001).
+  4. Hintaying lumabas ang "TAPOS!".
+
+ARAW-ARAW
+  1. START ang MySQL sa XAMPP.
+  2. Double-click ang start.bat
+     - Dalawang naka-minimize na window ang bubukas (WEB :88 at REVERB :6001).
+       HUWAG ISARA ang mga iyon.
+  3. Para patayin: stop.bat
+
+MGA ADDRESS (palitan ang <IP> ng IP ng server, makikita sa start.bat)
+  Kiosk   : http://<IP>:88/kiosk?key=<QUEUE_DEVICE_KEY sa .env>
+  TV      : http://<IP>:88/display
+  Counter : http://<IP>:88/login
+
+COUNTER LOGINS (password: changeme - PALITAN pagkatapos)
+  doh1     MSS / DOH-MAIP
+  dswd1    DSWD
+  phic1    PhilHealth
+  pagcor1  PAGCOR
+  admin
+
+CHROME SHORTCUTS
+  Kiosk (thermal printer = default printer, 80mm, walang margin):
+    chrome.exe --kiosk --kiosk-printing "http://<IP>:88/kiosk?key=..."
+  TV:
+    chrome.exe --kiosk --autoplay-policy=no-user-gesture-required "http://<IP>:88/display"
+
+LOGOS
+  Ilagay sa public\logos\ : doh.png, dswd.png, philhealth.png, pagcor.png
+  (Pangalan lang ang lalabas kapag wala pa.)
+
+AUTO-START KAPAG NAG-RESTART ANG PC
+  Win+R > shell:startup > maglagay ng shortcut ng start.bat
+  (Dapat naka-auto-start din ang MySQL ng XAMPP: XAMPP Control Panel > Config
+   > Autostart of modules > MySQL.)
+
+MGA SETTING (.env)
+  QUEUE_WEIGHT_FAST/PRIORITY/REGULAR  - ratio ng Call Next (default 2:1:1)
+  QUEUE_DEVICE_KEY                     - susi ng kiosk
+  DB_PASSWORD                          - kung may password ang MySQL root
+
+Para sa detalye ng code at database, basahin ang README.md.

@@ -2,8 +2,11 @@
   <main class="tv">
     <header class="top">
       <div class="brand">
+        <img class="brand-logo" :src="'/logos/r1mc.png'" alt="" @error="(e) => (e.target.style.display = 'none')" />
+        <div class="brand-text">
         <span class="hospital">Region 1 Medical Center</span>
         <span class="center">Malasakit Center</span>
+        </div>
       </div>
       <div class="clock">
         <span class="time">{{ time }}</span>
@@ -20,7 +23,7 @@
           :style="{ '--agency': agencyColor(s.code) }"
         >
           <header class="board-head">
-            <img v-if="s.logo" :src="s.logo" alt="" @error="(e) => (e.target.style.display = 'none')" />
+            <span v-if="s.logo" class="badge"><img :src="s.logo" alt="" @error="(e) => (e.target.parentElement.style.display = 'none')" /></span>
             <h2>{{ s.name }}</h2>
           </header>
 
@@ -84,6 +87,7 @@
 
     <!-- Full-screen call announcement -->
     <div v-if="flash" class="flash" :style="{ '--agency': agencyColor(flash.service.code) }">
+      <span v-if="logoFor(flash.service.code)" class="flash-badge"><img :src="logoFor(flash.service.code)" alt="" /></span>
       <p class="flash-lead">Now calling</p>
       <div class="flash-code">{{ flash.code }}</div>
       <p class="flash-where">Please proceed to {{ flash.service.name }}, {{ flash.counter?.name }}</p>
@@ -118,9 +122,10 @@ const AGENCY = {
   DOH: '#0F7B5F',
   DSWD: '#2456B3',
   PHIC: '#4E9A2F',
-  PAGCOR: '#0B8A92',
+  PAGCOR: '#B4161B',
 }
 const agencyColor = (code) => AGENCY[code] ?? '#3B5B7E'
+const logoFor = (code) => snapshot.value.services.find((s) => s.code === code)?.logo ?? null
 
 const laneLabel = { fast: 'Fast lane', priority: 'Priority', regular: 'Regular' }
 const laneOf = (code) => ({ F: 'fast', P: 'priority' })[code?.[0]] ?? 'regular'
@@ -232,7 +237,9 @@ onUnmounted(() => {
   align-items: center;
   padding: 1.2vw 2vw 1vw;
 }
-.brand { display: flex; flex-direction: column; line-height: 1.05; }
+.brand { display: flex; align-items: center; gap: 1vw; }
+.brand-logo { width: 4.4vw; height: 4.4vw; object-fit: contain; background: #fff; border-radius: 50%; padding: 0.15vw; }
+.brand-text { display: flex; flex-direction: column; line-height: 1.05; }
 .hospital { font-size: 1.25vw; color: var(--muted); font-weight: 500; }
 .center {
   font-family: 'Barlow Condensed', sans-serif;
@@ -279,7 +286,17 @@ onUnmounted(() => {
   padding: 0.9vw 1.1vw;
   background: color-mix(in srgb, var(--agency) 28%, var(--ink-2));
 }
-.board-head img { height: 2.6vw; width: auto; }
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.2vw;
+  height: 3.2vw;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 0.15vw color-mix(in srgb, var(--agency) 60%, #fff);
+}
+.badge img { width: 78%; height: 78%; object-fit: contain; }
 .board-head h2 {
   margin: 0;
   font-family: 'Barlow Condensed', sans-serif;
@@ -433,6 +450,16 @@ onUnmounted(() => {
   color: #fff;
   animation: flash-in 0.5s ease-out;
 }
+.flash-badge {
+  display: grid;
+  place-items: center;
+  width: 9vw;
+  height: 9vw;
+  margin-bottom: 1.2vw;
+  border-radius: 50%;
+  background: #fff;
+}
+.flash-badge img { width: 78%; height: 78%; object-fit: contain; }
 .flash-lead { margin: 0; font-size: 2.6vw; font-weight: 600; opacity: 0.9; }
 .flash-code {
   font-family: 'Barlow Condensed', sans-serif;

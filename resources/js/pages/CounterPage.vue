@@ -2,6 +2,7 @@
   <main v-if="state" class="desk" :style="{ '--agency': agencyColor(state.counter.service.code) }">
     <header class="bar">
       <div class="who">
+        <span v-if="logo" class="badge"><img :src="logo" alt="" @error="(e) => (e.target.parentElement.style.display = 'none')" /></span>
         <h1>{{ state.counter.service.name }}</h1>
         <span>{{ state.counter.spoken_name || state.counter.name }}</span>
       </div>
@@ -89,9 +90,10 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ensureCsrf, errorMessage } from '../lib/api'
 
-const AGENCY = { DOH: '#0F7B5F', DSWD: '#2456B3', PHIC: '#4E9A2F', PAGCOR: '#0B8A92' }
+const AGENCY = { DOH: '#0F7B5F', DSWD: '#2456B3', PHIC: '#4E9A2F', PAGCOR: '#B4161B' }
 const agencyColor = (code) => AGENCY[code] ?? '#3B5B7E'
 const laneLabel = { fast: 'Fast lane', priority: 'Priority', regular: 'Regular' }
+const LOGOS = { DOH: '/logos/doh.png', DSWD: '/logos/dswd.png', PHIC: '/logos/philhealth.png', PAGCOR: '/logos/pagcor.png' }
 
 const router = useRouter()
 const state = ref(null)
@@ -101,6 +103,8 @@ const messageKind = ref('info')
 const loadError = ref('')
 const now = ref(Date.now())
 let pollTimer, clockTimer, toastTimer
+
+const logo = computed(() => LOGOS[state.value?.counter?.service?.code] ?? null)
 
 const totalWaiting = computed(() => {
   const w = state.value?.waiting ?? {}
@@ -216,7 +220,9 @@ onUnmounted(() => {
   background: var(--agency);
   color: #fff;
 }
-.who { display: flex; align-items: baseline; gap: 14px; }
+.who { display: flex; align-items: center; gap: 14px; }
+.badge { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #fff; flex: none; }
+.badge img { width: 78%; height: 78%; object-fit: contain; }
 .who h1 { margin: 0; font: 700 34px/1 'Barlow Condensed', sans-serif; }
 .who span { font-size: 20px; font-weight: 600; opacity: 0.9; }
 .bar-right { display: flex; align-items: center; gap: 20px; }

@@ -109,7 +109,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-dk8xPjoM.js",
+    "file": "assets/app-CYdrrNuo.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -121,7 +121,7 @@
     ]
   },
   "resources/js/pages/CounterPage.vue": {
-    "file": "assets/CounterPage-BTXsG2je.js",
+    "file": "assets/CounterPage-BJ-ldan8.js",
     "name": "CounterPage",
     "src": "resources/js/pages/CounterPage.vue",
     "isDynamicEntry": true,
@@ -129,7 +129,7 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/CounterPage-zdr_wp9-.css",
+      "assets/CounterPage-odwBugZF.css",
       "assets/600-c4QXUbFY.css"
     ],
     "assets": [
@@ -154,7 +154,7 @@
     ]
   },
   "resources/js/pages/DisplayPage.vue": {
-    "file": "assets/DisplayPage-CLgkHs5C.js",
+    "file": "assets/DisplayPage-C0II1eAk.js",
     "name": "DisplayPage",
     "src": "resources/js/pages/DisplayPage.vue",
     "isDynamicEntry": true,
@@ -162,7 +162,7 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/DisplayPage-B88A__Qz.css",
+      "assets/DisplayPage-qkHb5AbX.css",
       "assets/600-c4QXUbFY.css"
     ],
     "assets": [
@@ -193,7 +193,7 @@
     ]
   },
   "resources/js/pages/KioskPage.vue": {
-    "file": "assets/KioskPage-BVV-_0pA.js",
+    "file": "assets/KioskPage-DDv7tgZf.js",
     "name": "KioskPage",
     "src": "resources/js/pages/KioskPage.vue",
     "isDynamicEntry": true,
@@ -201,11 +201,11 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/KioskPage-CcpadkQg.css"
+      "assets/KioskPage-BhBGkZPr.css"
     ]
   },
   "resources/js/pages/LoginPage.vue": {
-    "file": "assets/LoginPage-BOa2rfCY.js",
+    "file": "assets/LoginPage-Dils6LPK.js",
     "name": "LoginPage",
     "src": "resources/js/pages/LoginPage.vue",
     "isDynamicEntry": true,

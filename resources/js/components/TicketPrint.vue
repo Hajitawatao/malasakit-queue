@@ -4,6 +4,7 @@
 -->
 <template>
   <div v-if="ticket" class="ticket-print">
+    <img class="logo" :src="'/logos/r1mc.png'" alt="" />
     <div class="hosp">{{ hospital.name }}</div>
     <div class="addr">{{ hospital.address }}</div>
     <div class="addr">{{ hospital.phone }}</div>
@@ -33,6 +34,7 @@ defineProps({ ticket: Object, hospital: Object })
     width: 72mm; padding: 4mm;
     font-family: Arial, sans-serif; text-align: center; color: #000;
   }
+  .ticket-print .logo { width: 16mm; height: 16mm; object-fit: contain; display: block; margin: 0 auto 1mm; filter: grayscale(1); }
   .ticket-print .hosp { font-weight: 700; font-size: 13pt; letter-spacing: .5px; }
   .ticket-print .addr { font-size: 8.5pt; }
   .ticket-print .service { font-size: 20pt; font-weight: 700; margin-top: 3mm; }

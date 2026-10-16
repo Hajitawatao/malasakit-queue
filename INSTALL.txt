@@ -11,14 +11,14 @@ UNANG BESES
   2. Buksan ang XAMPP Control Panel > START ang MySQL.
      (Hindi kailangan ang Apache.)
   3. I-right-click ang setup.bat > Run as administrator
-     (administrator para mabuksan ang firewall ports 88 at 6001).
+     (administrator para mabuksan ang firewall port 88).
   4. Hintaying lumabas ang "TAPOS!".
 
 ARAW-ARAW
   1. START ang MySQL sa XAMPP.
   2. Double-click ang start.bat
-     - Dalawang naka-minimize na window ang bubukas (WEB :88 at REVERB :6001).
-       HUWAG ISARA ang mga iyon.
+     - Isang naka-minimize na window ang bubukas (WEB :88).
+       HUWAG ISARA iyon.
   3. Para patayin: stop.bat
 
 MGA ADDRESS (palitan ang <IP> ng IP ng server, makikita sa start.bat)

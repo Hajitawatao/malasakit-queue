@@ -53,10 +53,9 @@ echo [OK] Database tables at accounts
 rem ---- 5. Firewall (kailangan ng "Run as administrator") ----
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 || (
     netsh advfirewall firewall add rule name="Malasakit Queue 88" dir=in action=allow protocol=TCP localport=88 >nul 2>&1
-    netsh advfirewall firewall add rule name="Malasakit Queue 6001" dir=in action=allow protocol=TCP localport=6001 >nul 2>&1
 )
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 && (
-    echo [OK] Firewall ports 88 at 6001
+    echo [OK] Firewall port 88
 ) || (
     echo [!]  Hindi nabuksan ang firewall. I-right-click ang setup.bat ^> Run as administrator
     echo      kung kailangang ma-access ng ibang PC.

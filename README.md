@@ -2,7 +2,9 @@
 
 Web-based queueing para sa Malasakit Center: **touchscreen kiosk**, **TV display** na may boses, at **caller sa bawat PC station**.
 
-**Stack:** Laravel 11 (PHP 8.2+) · MySQL 8 · Vue 3 + Vite · Laravel Reverb (websocket) · Sanctum (login) · Web Speech API (boses)
+**Stack:** Laravel 12 (PHP 8.2+) · MySQL/MariaDB (XAMPP) · Vue 3 + Vite · Sanctum (login) · Web Speech API (boses) · lahat sa **port 88**
+
+> Pang-install sa XAMPP: basahin ang **INSTALL.txt** (setup.bat → start.bat).
 
 ## Mga serbisyo (4)
 
@@ -57,7 +59,7 @@ Counter ─POST /api/counter/call-next─▶ QueueCaller          │  Reverb (w
                                          ├─▶ TicketCalled ──┼──▶ TV: flash + boses
                                          └─▶ QueueUpdated ──┴──▶ TV/Counter: refetch snapshot
 ```
-May 15-second polling fallback ang TV kapag naputol ang websocket.
+**Live updates = polling sa port 88** (walang websocket): TV bawat 2s, counter bawat 3s, kiosk bawat 10s. Ang TV ang tumitingin sa `calls` (huling 2 minuto) para malaman kung sino ang babasahin ng boses. Ang `TicketCalled`/`QueueUpdated` events ay naka-handa pa rin kung gusto ng websocket balang araw (`BROADCAST_CONNECTION=reverb`).
 
 ## Database
 

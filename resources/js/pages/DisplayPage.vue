@@ -40,27 +40,39 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../lib/api'
-import { echo } from '../lib/echo'
 import { announce, unlockAudio } from '../lib/speech'
 
-const snapshot = ref({ services: [] })
+const POLL_MS = 2000
+
+const snapshot = ref({ services: [], calls: [] })
 const flash = ref(null)
 const started = ref(false)
 const offline = ref(false)
 const clock = ref('')
+const seen = new Set() // mga tawag na nabasa na (id@called_at)
+let firstLoad = true
 let pollTimer, clockTimer, flashTimer
 
 async function refresh() {
   try {
-    snapshot.value = (await api.get('/display')).data
+    const data = (await api.get('/display')).data
+    snapshot.value = data
     offline.value = false
+
+    for (const call of data.calls) {
+      if (seen.has(call.key)) continue
+      seen.add(call.key)
+      // Sa unang load, huwag basahin ang mga lumang tawag
+      if (!firstLoad) onCalled(call)
+    }
+    firstLoad = false
+    if (seen.size > 500) seen.clear()
   } catch {
     offline.value = true
   }
 }
 
 function onCalled(t) {
-  refresh()
   flash.value = t
   clearTimeout(flashTimer)
   flashTimer = setTimeout(() => (flash.value = null), 8000)
@@ -81,16 +93,12 @@ onMounted(() => {
   refresh()
   tick()
   clockTimer = setInterval(tick, 1000)
-  pollTimer = setInterval(refresh, 15000) // fallback kung naputol ang websocket
-  echo.channel('queue.display')
-    .listen('.ticket.called', onCalled)
-    .listen('.queue.updated', refresh)
+  pollTimer = setInterval(refresh, POLL_MS)
 })
 
 onUnmounted(() => {
   clearInterval(pollTimer)
   clearInterval(clockTimer)
-  echo.leave('queue.display')
 })
 </script>
 

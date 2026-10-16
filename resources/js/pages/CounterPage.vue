@@ -48,14 +48,13 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ensureCsrf, errorMessage } from '../lib/api'
-import { echo } from '../lib/echo'
 
 const router = useRouter()
 const state = ref(null)
 const busy = ref(false)
 const message = ref('')
 const laneLabel = { fast: 'Fast Lane', priority: 'Priority', regular: 'Regular' }
-let channel
+let pollTimer
 
 async function load() {
   state.value = (await api.get('/counter/state')).data
@@ -103,14 +102,14 @@ function onKey(e) {
 onMounted(async () => {
   await ensureCsrf()
   await load()
-  channel = `queue.service.${state.value.counter.service.id}`
-  echo.channel(channel).listen('.queue.updated', load) // live na bilang ng naghihintay
+  // live na bilang ng naghihintay (bawat 3 segundo)
+  pollTimer = setInterval(() => { if (!busy.value) load().catch(() => {}) }, 3000)
   window.addEventListener('keydown', onKey)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
-  if (channel) echo.leave(channel)
+  clearInterval(pollTimer)
 })
 </script>
 

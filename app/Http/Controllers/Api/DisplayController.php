@@ -29,7 +29,24 @@ class DisplayController extends Controller
             ->get(['id', 'service_id', 'code', 'lane'])
             ->groupBy('service_id');
 
+        // Mga kakatawag lang (huling 2 minuto). Ginagamit ng TV para malaman
+        // kung ano ang babasahin ng boses; nag-iiba ang called_at kapag ni-recall.
+        $calls = Ticket::today()
+            ->whereIn('status', TicketStatus::active())
+            ->where('called_at', '>=', now()->subMinutes(2))
+            ->with(['service:id,name', 'counter:id,name'])
+            ->orderBy('called_at')
+            ->get()
+            ->map(fn (Ticket $t) => [
+                'key' => $t->id . '@' . $t->called_at->getTimestamp(),
+                'code' => $t->code,
+                'lane' => $t->lane->value,
+                'service' => ['name' => $t->service->name],
+                'counter' => ['name' => $t->counter?->name],
+            ]);
+
         return [
+            'calls' => $calls,
             'services' => Service::active()->get()->map(fn (Service $s) => [
                 'id' => $s->id,
                 'code' => $s->code,

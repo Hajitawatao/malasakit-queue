@@ -23,14 +23,14 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "PHPX=-d date.timezone=Asia/Manila"
+rem Never print PHP warnings into web pages / API responses
+set "PHPX=-d date.timezone=Asia/Manila -d display_errors=0 -d display_startup_errors=0 -d log_errors=1"
 for %%d in ("%PHP%") do set "PHPDIR=%%~dpd"
 if exist "%PHPDIR%ext" call set "PHPX=%%PHPX%% -d "extension_dir=%PHPDIR%ext""
-set "PHPM=%TEMP%\malasakit_php_modules.txt"
-"%PHP%" %PHPX% -m > "%PHPM%" 2>nul
-for %%E in (zip fileinfo pdo_mysql mbstring openssl curl) do (
-    findstr /i /x "%%E" "%PHPM%" >nul || call set "PHPX=%%PHPX%% -d extension=%%E"
-)
-del "%PHPM%" >nul 2>&1
+
+rem Ask PHP itself which extensions are missing (only those get -d extension=...)
+set "EXTRA="
+for /f "usebackq delims=" %%x in (`""%PHP%" -d display_startup_errors=0 -r "foreach (['zip','fileinfo','pdo_mysql','mbstring','openssl','curl'] as $e) if (!extension_loaded($e)) echo ' -d extension='.$e;""`) do set "EXTRA=%%x"
+if defined EXTRA call set "PHPX=%%PHPX%%%%EXTRA%%"
 
 exit /b 0

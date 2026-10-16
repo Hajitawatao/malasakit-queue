@@ -8,38 +8,38 @@ set "WEB_PORT=88"
 call "%~dp0_php.bat" || ( pause & exit /b 1 )
 
 if not exist vendor\autoload.php (
-    echo Hindi pa naka-setup. Patakbuhin muna ang setup.bat
+    echo Not set up yet. Run setup.bat first.
     pause
     exit /b 1
 )
 
 "%MYSQL%" -u root -e "SELECT 1" >nul 2>&1 || (
-    echo [!] Mukhang hindi naka-START ang MySQL sa XAMPP. I-start muna.
+    echo [!] MySQL does not seem to be running. START it in XAMPP first.
     pause
 )
 
-rem ---- siguraduhing walang ibang app sa port 88
+rem ---- make sure nothing else is using port 88
 netstat -ano | findstr /c:":%WEB_PORT% " | findstr /c:"LISTENING" >nul && (
-    echo [ERROR] May gumagamit na ng port %WEB_PORT%:
+    echo [ERROR] Port %WEB_PORT% is already in use by:
     for /f "tokens=5" %%I in ('netstat -ano ^| findstr /c:":%WEB_PORT% " ^| findstr /c:"LISTENING"') do (
         for /f "tokens=1" %%A in ('tasklist /fi "PID eq %%I" /nh') do echo     %%A  PID %%I
     )
-    echo Kung Malasakit Queue iyan mula sa naunang start, patakbuhin muna ang stop.bat
+    echo If that is Malasakit Queue from an earlier start, run stop.bat first.
     pause
     exit /b 1
 )
 
-rem Web server sa port 88 (PHP built-in server, katumbas ng "artisan serve")
+rem Web server on port 88 (PHP built-in server, same as "artisan serve")
 set "ROUTER=%~dp0vendor\laravel\framework\src\Illuminate\Foundation\resources\server.php"
 start "Malasakit Queue - WEB :%WEB_PORT%" /min cmd /k "cd /d "%~dp0public" && "%PHP%" %PHPX% -S 0.0.0.0:%WEB_PORT% "%ROUTER%""
 
 for /f "tokens=2 delims==" %%K in ('findstr /b /c:"QUEUE_DEVICE_KEY=" .env') do set "KEY=%%K"
 
 echo ==========================================================
-echo   MALASAKIT QUEUE - TUMATAKBO NA (port %WEB_PORT%)
-echo   Huwag isara ang naka-minimize na window.
+echo   MALASAKIT QUEUE IS RUNNING (port %WEB_PORT%)
+echo   Do not close the minimized server window.
 echo.
-echo   Sa PC na ito : http://localhost:%WEB_PORT%/display
+echo   On this PC : http://localhost:%WEB_PORT%/display
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do for /f "tokens=*" %%b in ("%%a") do (
     echo.
     echo   Kiosk   : http://%%b:%WEB_PORT%/kiosk?key=%KEY%

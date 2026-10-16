@@ -1,8 +1,8 @@
 @echo off
 rem ==========================================================
-rem  Hinahanap ang PHP at nilo-load ang kulang na extensions
-rem  sa command line (hindi ginagalaw ang php.ini).
-rem  Tinatawag ng setup.bat at start.bat. Huwag patakbuhin mag-isa.
+rem  Finds PHP and loads any missing extensions on the command
+rem  line, so php.ini is never edited.
+rem  Called by setup.bat and start.bat. Do not run it directly.
 rem ==========================================================
 
 set "PHP="
@@ -11,15 +11,15 @@ if not defined PHP if exist "C:\xampp\php\php.exe" set "PHP=C:\xampp\php\php.exe
 if not defined PHP for /f "delims=" %%p in ('where php.exe 2^>nul') do if not defined PHP set "PHP=%%p"
 if not defined PHP if exist "C:\php\php.exe" set "PHP=C:\php\php.exe"
 if not defined PHP (
-    echo [ERROR] Hindi makita ang PHP. I-install ang XAMPP, o i-set ang PHP_BIN.
+    echo [ERROR] PHP was not found. Install XAMPP, or set PHP_BIN to your php.exe.
     exit /b 1
 )
 
 "%PHP%" -r "exit(PHP_VERSION_ID>=80200?0:1);" >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Kailangan ng PHP 8.2 o mas bago. Ito ang nakita: %PHP%
+    echo [ERROR] PHP 8.2 or newer is required. Found: %PHP%
     "%PHP%" -v
-    echo I-update ang XAMPP, o i-set ang PHP_BIN sa mas bagong php.exe.
+    echo Update XAMPP, or set PHP_BIN to a newer php.exe.
     exit /b 1
 )
 

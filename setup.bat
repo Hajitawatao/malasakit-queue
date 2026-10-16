@@ -4,8 +4,8 @@ cd /d "%~dp0"
 title Malasakit Queue - First-time Setup
 
 echo ==========================================================
-echo   MALASAKIT QUEUEING SYSTEM - SETUP (isang beses lang)
-echo   Siguraduhing naka-START ang MySQL sa XAMPP Control Panel.
+echo   MALASAKIT QUEUEING SYSTEM - SETUP (run once)
+echo   Make sure MySQL is STARTED in the XAMPP Control Panel.
 echo ==========================================================
 echo.
 
@@ -14,31 +14,32 @@ call "%~dp0_php.bat" || goto :fail
 rem ---- 0. Config file ----
 if not exist .env (
     copy /y .env.example .env >nul
-    echo [OK] Ginawa ang .env mula sa .env.example
+    echo [OK] Created .env from .env.example
 )
 echo [OK] PHP:
 "%PHP%" -r "echo '     '.PHP_VERSION.PHP_EOL;"
-if defined PHPX echo [i]  Extra extensions na ilo-load:%PHPX%
+if defined PHPX echo [i]  Extra PHP flags:%PHPX%
 
 rem ---- 1. MySQL ----
 "%MYSQL%" -u root -e "SELECT 1" >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Hindi maka-connect sa MySQL. I-START ang MySQL sa XAMPP, saka ulitin.
-    echo         Kung may password ang root, ilagay sa DB_PASSWORD sa .env at gawin ang database sa phpMyAdmin.
+    echo [ERROR] Cannot connect to MySQL. START MySQL in XAMPP, then run this again.
+    echo         If root has a password, put it in DB_PASSWORD in .env and create the
+    echo         database malasakit_queue in phpMyAdmin.
     goto :fail
 )
 "%MYSQL%" -u root -e "CREATE DATABASE IF NOT EXISTS malasakit_queue CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
 echo [OK] Database malasakit_queue
 
-rem ---- 2. Composer + PHP packages (kailangan ng internet) ----
+rem ---- 2. Composer + PHP packages (needs internet) ----
 if not exist composer.phar (
-    echo [..] Dina-download ang Composer...
+    echo [..] Downloading Composer...
     "%PHP%" %PHPX% -r "copy('https://getcomposer.org/download/latest-stable/composer.phar','composer.phar') or exit(1);"
-    if errorlevel 1 ( echo [ERROR] Hindi ma-download ang Composer. May internet ba? & goto :fail )
+    if errorlevel 1 ( echo [ERROR] Could not download Composer. Is this PC online? & goto :fail )
 )
-echo [..] Ini-install ang PHP packages (ilang minuto)...
+echo [..] Installing PHP packages (this takes a few minutes)...
 "%PHP%" %PHPX% composer.phar install --no-dev --optimize-autoloader --no-interaction
-if errorlevel 1 ( echo [ERROR] Pumalya ang composer install. & goto :fail )
+if errorlevel 1 ( echo [ERROR] composer install failed. & goto :fail )
 echo [OK] PHP packages
 
 rem ---- 3. App key ----
@@ -47,23 +48,23 @@ echo [OK] App key
 
 rem ---- 4. Tables + default accounts ----
 "%PHP%" %PHPX% artisan migrate --seed --force
-if errorlevel 1 ( echo [ERROR] Pumalya ang migration. & goto :fail )
-echo [OK] Database tables at accounts
+if errorlevel 1 ( echo [ERROR] Database migration failed. & goto :fail )
+echo [OK] Database tables and accounts
 
-rem ---- 5. Firewall (kailangan ng "Run as administrator") ----
+rem ---- 5. Firewall (needs "Run as administrator") ----
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 || (
     netsh advfirewall firewall add rule name="Malasakit Queue 88" dir=in action=allow protocol=TCP localport=88 >nul 2>&1
 )
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 && (
     echo [OK] Firewall port 88
 ) || (
-    echo [!]  Hindi nabuksan ang firewall. I-right-click ang setup.bat ^> Run as administrator
-    echo      kung kailangang ma-access ng ibang PC.
+    echo [!]  Could not open the firewall. Right-click setup.bat ^> Run as administrator
+    echo      if other PCs need to reach this one.
 )
 
 echo.
 echo ==========================================================
-echo   TAPOS! Patakbuhin ang start.bat
+echo   DONE! Now run start.bat
 echo   Counter logins (password: changeme):
 echo     doh1  dswd1  phic1  pagcor1  admin
 echo ==========================================================
@@ -72,6 +73,6 @@ exit /b 0
 
 :fail
 echo.
-echo Setup hindi natapos. I-screenshot ang error sa itaas.
+echo Setup did not finish. Take a screenshot of the error above.
 pause
 exit /b 1

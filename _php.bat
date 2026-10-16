@@ -30,7 +30,7 @@ if exist "%PHPDIR%ext" call set "PHPX=%%PHPX%% -d "extension_dir=%PHPDIR%ext""
 
 rem Ask PHP itself which extensions are missing (only those get -d extension=...)
 set "EXTRA="
-for /f "usebackq delims=" %%x in (`""%PHP%" -d display_startup_errors=0 -r "foreach (['zip','fileinfo','pdo_mysql','mbstring','openssl','curl'] as $e) if (!extension_loaded($e)) echo ' -d extension='.$e;""`) do set "EXTRA=%%x"
+for /f "usebackq delims=" %%x in (`""%PHP%" -d display_startup_errors=0 "%~dp0tools\missing-ext.php""`) do set "EXTRA=%%x"
 if defined EXTRA call set "PHPX=%%PHPX%%%%EXTRA%%"
 
 exit /b 0

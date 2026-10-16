@@ -1,4 +1,8 @@
 {
+  "_600-c4QXUbFY.css": {
+    "file": "assets/600-c4QXUbFY.css",
+    "src": "_600-c4QXUbFY.css"
+  },
   "node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff": {
     "file": "assets/barlow-condensed-latin-600-normal-BFJEwTuo.woff",
     "src": "node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff"
@@ -105,7 +109,7 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-DEWGR3Px.js",
+    "file": "assets/app-D-QCgFXJ.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -117,7 +121,7 @@
     ]
   },
   "resources/js/pages/CounterPage.vue": {
-    "file": "assets/CounterPage-DtmMpKT4.js",
+    "file": "assets/CounterPage-B4AUNERk.js",
     "name": "CounterPage",
     "src": "resources/js/pages/CounterPage.vue",
     "isDynamicEntry": true,
@@ -125,11 +129,32 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/CounterPage-BwOlOmB1.css"
+      "assets/CounterPage-zdr_wp9-.css",
+      "assets/600-c4QXUbFY.css"
+    ],
+    "assets": [
+      "assets/barlow-condensed-vietnamese-700-normal-DYeBwlKR.woff2",
+      "assets/barlow-condensed-vietnamese-700-normal-DhIzd8Tb.woff",
+      "assets/barlow-condensed-latin-ext-700-normal-CwuXbfVR.woff2",
+      "assets/barlow-condensed-latin-ext-700-normal-BIHFfxf0.woff",
+      "assets/barlow-condensed-latin-700-normal-v1xN8_Wq.woff2",
+      "assets/barlow-condensed-latin-700-normal-Dmwat-ge.woff",
+      "assets/barlow-vietnamese-500-normal-zTViEIzf.woff2",
+      "assets/barlow-vietnamese-500-normal-GNfB7rCE.woff",
+      "assets/barlow-latin-ext-500-normal-DOaysfXq.woff2",
+      "assets/barlow-latin-ext-500-normal-CJPcKP2Q.woff",
+      "assets/barlow-latin-500-normal-BPAOfeC8.woff2",
+      "assets/barlow-latin-500-normal-C1h8hMer.woff",
+      "assets/barlow-vietnamese-600-normal-DcjprdFV.woff2",
+      "assets/barlow-vietnamese-600-normal-CA_GiK2e.woff",
+      "assets/barlow-latin-ext-600-normal-B8NK_A3D.woff2",
+      "assets/barlow-latin-ext-600-normal-DMVRjfRT.woff",
+      "assets/barlow-latin-600-normal-DILqtrty.woff2",
+      "assets/barlow-latin-600-normal-CNwfPWQD.woff"
     ]
   },
   "resources/js/pages/DisplayPage.vue": {
-    "file": "assets/DisplayPage-C8oWZ4uK.js",
+    "file": "assets/DisplayPage-0P6iMsuh.js",
     "name": "DisplayPage",
     "src": "resources/js/pages/DisplayPage.vue",
     "isDynamicEntry": true,
@@ -137,7 +162,8 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/DisplayPage-CvNo2Iqv.css"
+      "assets/DisplayPage-e_3N09H5.css",
+      "assets/600-c4QXUbFY.css"
     ],
     "assets": [
       "assets/barlow-condensed-vietnamese-600-normal-A5AYRdjN.woff2",
@@ -167,7 +193,7 @@
     ]
   },
   "resources/js/pages/KioskPage.vue": {
-    "file": "assets/KioskPage-BwQ5ISYu.js",
+    "file": "assets/KioskPage-BePiY4js.js",
     "name": "KioskPage",
     "src": "resources/js/pages/KioskPage.vue",
     "isDynamicEntry": true,
@@ -179,7 +205,7 @@
     ]
   },
   "resources/js/pages/LoginPage.vue": {
-    "file": "assets/LoginPage-D5IgTPi3.js",
+    "file": "assets/LoginPage-U5pYAscA.js",
     "name": "LoginPage",
     "src": "resources/js/pages/LoginPage.vue",
     "isDynamicEntry": true,

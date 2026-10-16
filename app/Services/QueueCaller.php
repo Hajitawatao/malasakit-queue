@@ -29,16 +29,11 @@ class QueueCaller
         $serviceId = $counter->service_id;
 
         $ticket = DB::transaction(function () use ($counter, $user, $lane, $serviceId) {
-            // Auto-tapusin ang kasalukuyang pasyente ng counter na ito
-            Ticket::where('counter_id', $counter->id)
-                ->whereIn('status', TicketStatus::active())
-                ->update(['status' => TicketStatus::Done, 'finished_at' => now()]);
-
             $lanesToTry = $lane ? [$lane] : $this->rotationOrder($serviceId);
 
             foreach ($lanesToTry as $tryLane) {
-                // FOR UPDATE: kapag sabay pumindot ang dalawang bintana, hindi
-                // makukuha ng pareho ang iisang ticket.
+                // FOR UPDATE: if two windows press Call Next at the same time,
+                // they can never get the same ticket.
                 $next = Ticket::today()
                     ->where('service_id', $serviceId)
                     ->where('status', TicketStatus::Waiting)
@@ -47,29 +42,39 @@ class QueueCaller
                     ->lockForUpdate()
                     ->first();
 
-                if ($next) {
-                    $next->update([
-                        'status' => TicketStatus::Called,
-                        'counter_id' => $counter->id,
-                        'served_by' => $user->id,
-                        'called_at' => now(),
-                    ]);
-                    if (! $lane) {
-                        $this->advanceRotation($serviceId, $tryLane);
-                    }
-                    return $next;
+                if (! $next) {
+                    continue;
                 }
+
+                // Only finish the current patient once we know someone is next.
+                // (Before: pressing Call Next on an empty queue ended the current patient.)
+                Ticket::where('counter_id', $counter->id)
+                    ->whereIn('status', TicketStatus::active())
+                    ->update(['status' => TicketStatus::Done, 'finished_at' => now()]);
+
+                $next->update([
+                    'status' => TicketStatus::Called,
+                    'counter_id' => $counter->id,
+                    'served_by' => $user->id,
+                    'called_at' => now(),
+                ]);
+                if (! $lane) {
+                    $this->advanceRotation($serviceId, $tryLane);
+                }
+
+                return $next;
             }
 
             return null;
         });
 
-        QueueUpdated::dispatch($serviceId);
-
-        if ($ticket) {
-            $ticket->load('service', 'counter');
-            TicketCalled::dispatch($ticket);
+        if (! $ticket) {
+            return null;
         }
+
+        QueueUpdated::dispatch($serviceId);
+        $ticket->load('service', 'counter');
+        TicketCalled::dispatch($ticket);
 
         return $ticket;
     }
@@ -80,7 +85,7 @@ class QueueCaller
 
         if ($ticket->recall_count >= config('queue_system.max_recalls')) {
             throw ValidationException::withMessages([
-                'ticket' => 'Naabot na ang max recall. I-mark bilang No-show.',
+                'ticket' => 'Maximum recalls reached. Mark this patient as No-show.',
             ]);
         }
 
@@ -166,7 +171,7 @@ class QueueCaller
     private function assertOwnedBy(Ticket $ticket, Counter $counter): void
     {
         if ($ticket->counter_id !== $counter->id) {
-            abort(403, 'Hindi sa counter na ito ang ticket.');
+            abort(403, 'This ticket belongs to another window.');
         }
     }
 }

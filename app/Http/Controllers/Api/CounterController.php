@@ -42,7 +42,7 @@ class CounterController extends Controller
             ->count();
 
         return [
-            'counter' => $counter->only(['id', 'name']) + ['service' => $counter->service],
+            'counter' => $counter->only(['id', 'name', 'spoken_name']) + ['service' => $counter->service],
             'current' => $current ? [
                 'id' => $current->id,
                 'code' => $current->code,
@@ -68,7 +68,7 @@ class CounterController extends Controller
         );
 
         if (! $ticket) {
-            return response()->json(['message' => 'Walang naghihintay sa pila.'], 404);
+            return response()->json(['message' => 'No one is waiting in this lane.'], 404);
         }
 
         return $this->state($request);
@@ -101,7 +101,7 @@ class CounterController extends Controller
     private function counter(Request $request): Counter
     {
         $counter = $request->user()->counter;
-        abort_unless($counter && $counter->is_active, 403, 'Walang naka-assign na counter sa account na ito.');
+        abort_unless($counter && $counter->is_active, 403, 'This account has no window assigned.');
         return $counter;
     }
 }

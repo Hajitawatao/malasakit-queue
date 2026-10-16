@@ -20,16 +20,9 @@ echo [OK] PHP:
 "%PHP%" -r "echo '     '.PHP_VERSION.PHP_EOL;"
 if defined PHPX echo [i]  Extra PHP flags:%PHPX%
 
-rem ---- 1. MySQL ----
-"%MYSQL%" -u root -e "SELECT 1" >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Cannot connect to MySQL. START MySQL in XAMPP, then run this again.
-    echo         If root has a password, put it in DB_PASSWORD in .env and create the
-    echo         database malasakit_queue in phpMyAdmin.
-    goto :fail
-)
-"%MYSQL%" -u root -e "CREATE DATABASE IF NOT EXISTS malasakit_queue CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-echo [OK] Database malasakit_queue
+rem ---- 1. MySQL (uses DB_* from .env) ----
+"%PHP%" %PHPX% tools\db.php create
+if errorlevel 1 goto :fail
 
 rem ---- 2. Composer + PHP packages (needs internet) ----
 if not exist composer.phar (

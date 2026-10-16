@@ -13,9 +13,11 @@ if not exist vendor\autoload.php (
     exit /b 1
 )
 
-"%MYSQL%" -u root -e "SELECT 1" >nul 2>&1 || (
-    echo [!] MySQL does not seem to be running. START it in XAMPP first.
+"%PHP%" %PHPX% tools\db.php check || (
+    echo.
+    echo Fix the MySQL problem above, then run start.bat again.
     pause
+    exit /b 1
 )
 
 rem ---- make sure nothing else is using port 88

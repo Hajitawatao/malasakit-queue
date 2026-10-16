@@ -26,11 +26,11 @@ if errorlevel 1 (
 set "PHPX=-d date.timezone=Asia/Manila"
 for %%d in ("%PHP%") do set "PHPDIR=%%~dpd"
 if exist "%PHPDIR%ext" call set "PHPX=%%PHPX%% -d "extension_dir=%PHPDIR%ext""
+set "PHPM=%TEMP%\malasakit_php_modules.txt"
+"%PHP%" %PHPX% -m > "%PHPM%" 2>nul
 for %%E in (zip fileinfo pdo_mysql mbstring openssl curl) do (
-    call "%%PHP%%" %%PHPX%% -m 2>nul | findstr /i /x "%%E" >nul || call set "PHPX=%%PHPX%% -d extension=%%E"
+    findstr /i /x "%%E" "%PHPM%" >nul || call set "PHPX=%%PHPX%% -d extension=%%E"
 )
-
-set "MYSQL=C:\xampp\mysql\bin\mysql.exe"
-if not exist "%MYSQL%" set "MYSQL=mysql"
+del "%PHPM%" >nul 2>&1
 
 exit /b 0

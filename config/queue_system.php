@@ -14,6 +14,12 @@ return [
     'max_recalls' => 3,             // pagkatapos nito, i-mark as no-show
     'timezone' => 'Asia/Manila',
 
+    // Offline female voice (Piper). Installed by install-voice.bat.
+    'tts' => [
+        'piper' => env('PIPER_PATH', base_path('tools/piper/piper/' . (PHP_OS_FAMILY === 'Windows' ? 'piper.exe' : 'piper'))),
+        'model' => env('PIPER_MODEL', base_path('tools/piper/voice.onnx')),
+    ],
+
     'hospital' => [
         'name' => 'REGION 1 MEDICAL CENTER',
         'address' => 'Arellano Street, Dagupan City, Pangasinan',

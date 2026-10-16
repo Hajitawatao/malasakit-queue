@@ -15,6 +15,7 @@ Route::middleware([EnsureDeviceKey::class, 'throttle:60,1'])->prefix('kiosk')->g
 
 // ---- TV display (read-only, public sa LAN) ----
 Route::get('display', [DisplayController::class, 'snapshot']);
+Route::get('display/test-voice', [DisplayController::class, 'testVoice'])->middleware('throttle:20,1');
 
 // ---- Counter staff ----
 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1');

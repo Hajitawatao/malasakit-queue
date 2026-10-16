@@ -19,6 +19,8 @@
 /storage/pail
 /vendor
 /composer.phar
+/tools/piper/
+/public/tts/
 Homestead.json
 Homestead.yaml
 Thumbs.db

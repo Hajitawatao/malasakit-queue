@@ -44,7 +44,10 @@ rem ---- 4. Tables + default accounts ----
 if errorlevel 1 ( echo [ERROR] Database migration failed. & goto :fail )
 echo [OK] Database tables and accounts
 
-rem ---- 5. Firewall (needs "Run as administrator") ----
+rem ---- 5. Natural female voice for the TV (optional, needs internet) ----
+call "%~dp0install-voice.bat" /quiet || echo [!]  Voice not installed. The TV will use the browser voice. Run install-voice.bat later.
+
+rem ---- 6. Firewall (needs "Run as administrator") ----
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 || (
     netsh advfirewall firewall add rule name="Malasakit Queue 88" dir=in action=allow protocol=TCP localport=88 >nul 2>&1
 )

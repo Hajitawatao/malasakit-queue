@@ -6,6 +6,7 @@ use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\Ticket;
+use App\Services\Announcer;
 
 class DisplayController extends Controller
 {
@@ -13,7 +14,7 @@ class DisplayController extends Controller
      * Buong snapshot ng TV display. Tinatawag sa page load at tuwing may
      * QueueUpdated event (at bawat 15s bilang fallback kung naputol ang websocket).
      */
-    public function snapshot()
+    public function snapshot(Announcer $announcer)
     {
         $active = Ticket::today()
             ->whereIn('status', TicketStatus::active())
@@ -34,7 +35,7 @@ class DisplayController extends Controller
         $calls = Ticket::today()
             ->whereIn('status', TicketStatus::active())
             ->where('called_at', '>=', now()->subMinutes(2))
-            ->with(['service:id,code,name', 'counter:id,name,spoken_name'])
+            ->with(['service:id,code,name,spoken_name', 'counter:id,name,spoken_name'])
             ->orderBy('called_at')
             ->get()
             ->map(fn (Ticket $t) => [
@@ -43,6 +44,8 @@ class DisplayController extends Controller
                 'lane' => $t->lane->value,
                 'service' => ['code' => $t->service->code, 'name' => $t->service->name],
                 'counter' => ['name' => $t->counter?->spoken_name ?? $t->counter?->name],
+                'speech' => $text = $announcer->textFor($t),
+                'audio' => $announcer->audioFor($text),
             ]);
 
         // Huling 6 na tinawag ngayong araw (para sa "Recent calls" sa TV)
@@ -62,6 +65,7 @@ class DisplayController extends Controller
 
         return [
             'calls' => $calls,
+            'voice_engine' => $announcer->available() ? 'piper' : 'browser',
             'recent' => $recent,
             'services' => Service::active()->get()->map(fn (Service $s) => [
                 'id' => $s->id,
@@ -78,5 +82,13 @@ class DisplayController extends Controller
             ]),
             'server_time' => now()->toIso8601String(),
         ];
+    }
+
+    /** Plays a sample announcement (TV "Test voice" button). */
+    public function testVoice(Announcer $announcer)
+    {
+        $text = 'Now calling number R 1. Please proceed to D S W D, Window 1.';
+
+        return ['speech' => $text, 'audio' => $announcer->audioFor($text), 'voice_engine' => $announcer->available() ? 'piper' : 'browser'];
     }
 }

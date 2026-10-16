@@ -92,11 +92,9 @@
 
     <button v-if="!started" class="start" type="button" @click="start">
       <span>Tap anywhere to start the display and voice</span>
-      <small v-if="voices.english">
-        Voice: {{ voices.english }}<template v-if="voices.filipino"> and {{ voices.filipino }}</template>
-      </small>
-      <small v-if="!voices.natural" class="hint">
-        For a natural-sounding voice, open this page in Microsoft Edge with internet on.
+      <small>{{ voiceLabel }}</small>
+      <small v-if="snapshot.voice_engine === 'browser'" class="hint">
+        For the natural female voice, run install-voice.bat on the server PC.
       </small>
     </button>
     <button v-if="started" class="test-voice" type="button" @click="testVoice">Test voice</button>
@@ -109,9 +107,9 @@ import '@fontsource/barlow-condensed/600.css'
 import '@fontsource/barlow-condensed/700.css'
 import '@fontsource/barlow/500.css'
 import '@fontsource/barlow/600.css'
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../lib/api'
-import { announce, testVoice, unlockAudio, voiceInfo } from '../lib/speech'
+import { announce, browserVoiceName, unlockAudio } from '../lib/speech'
 
 const POLL_MS = 2000
 
@@ -127,9 +125,23 @@ const agencyColor = (code) => AGENCY[code] ?? '#3B5B7E'
 const laneLabel = { fast: 'Fast lane', priority: 'Priority', regular: 'Regular' }
 const laneOf = (code) => ({ F: 'fast', P: 'priority' })[code?.[0]] ?? 'regular'
 
-const snapshot = ref({ services: [], calls: [], recent: [] })
+const snapshot = ref({ services: [], calls: [], recent: [], voice_engine: null })
 const flash = ref(null)
-const voices = ref({ english: null, filipino: null, natural: false })
+const browserVoice = ref(null)
+const voiceLabel = computed(() =>
+  snapshot.value.voice_engine === 'piper'
+    ? 'Voice: natural female (offline, Piper)'
+    : `Voice: ${browserVoice.value ?? 'browser default'} (browser)`,
+)
+
+async function testVoice() {
+  try {
+    const { data } = await api.get('/display/test-voice')
+    announce({ code: 'R001', service: { name: 'DSWD' }, counter: { name: 'Window 1' }, speech: data.speech, audio: data.audio })
+  } catch {
+    announce({ code: 'R001', service: { name: 'DSWD' }, counter: { name: 'Window 1' } })
+  }
+}
 const started = ref(false)
 const offline = ref(false)
 const time = ref('')
@@ -176,8 +188,8 @@ function tick() {
 }
 
 onMounted(() => {
-  voices.value = voiceInfo()
-  speechSynthesis.addEventListener?.('voiceschanged', () => (voices.value = voiceInfo()))
+  browserVoice.value = browserVoiceName()
+  speechSynthesis.addEventListener?.('voiceschanged', () => (browserVoice.value = browserVoiceName()))
   refresh()
   tick()
   clockTimer = setInterval(tick, 1000)

@@ -17,7 +17,7 @@ class DisplayController extends Controller
     {
         $active = Ticket::today()
             ->whereIn('status', TicketStatus::active())
-            ->with('counter:id,name')
+            ->with('counter:id,name,spoken_name')
             ->orderByDesc('called_at')
             ->get()
             ->groupBy('service_id');
@@ -34,27 +34,44 @@ class DisplayController extends Controller
         $calls = Ticket::today()
             ->whereIn('status', TicketStatus::active())
             ->where('called_at', '>=', now()->subMinutes(2))
-            ->with(['service:id,name', 'counter:id,name'])
+            ->with(['service:id,code,name', 'counter:id,name,spoken_name'])
             ->orderBy('called_at')
             ->get()
             ->map(fn (Ticket $t) => [
                 'key' => $t->id . '@' . $t->called_at->getTimestamp(),
                 'code' => $t->code,
                 'lane' => $t->lane->value,
-                'service' => ['name' => $t->service->name],
-                'counter' => ['name' => $t->counter?->name],
+                'service' => ['code' => $t->service->code, 'name' => $t->service->name],
+                'counter' => ['name' => $t->counter?->spoken_name ?? $t->counter?->name],
+            ]);
+
+        // Huling 6 na tinawag ngayong araw (para sa "Recent calls" sa TV)
+        $recent = Ticket::today()
+            ->whereNotNull('called_at')
+            ->with(['service:id,code,name', 'counter:id,name,spoken_name'])
+            ->orderByDesc('called_at')
+            ->limit(6)
+            ->get()
+            ->map(fn (Ticket $t) => [
+                'code' => $t->code,
+                'lane' => $t->lane->value,
+                'service' => $t->service->only(['code', 'name']),
+                'counter' => $t->counter?->spoken_name ?? $t->counter?->name,
+                'time' => $t->called_at->timezone(config('queue_system.timezone'))->format('g:i A'),
             ]);
 
         return [
             'calls' => $calls,
+            'recent' => $recent,
             'services' => Service::active()->get()->map(fn (Service $s) => [
                 'id' => $s->id,
                 'code' => $s->code,
                 'name' => $s->name,
+                'logo' => $s->logo_path ? asset($s->logo_path) : null,
                 'now_serving' => ($active->get($s->id) ?? collect())->map(fn ($t) => [
                     'code' => $t->code,
                     'lane' => $t->lane->value,
-                    'counter' => $t->counter?->name,
+                    'counter' => $t->counter?->spoken_name ?? $t->counter?->name,
                 ])->values(),
                 'next' => ($waiting->get($s->id) ?? collect())->take(5)->pluck('code'),
                 'waiting_total' => ($waiting->get($s->id) ?? collect())->count(),

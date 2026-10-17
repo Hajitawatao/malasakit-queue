@@ -52,6 +52,11 @@ BOSES (natural na babae, offline)
   install-voice.bat - i-download ang Piper at female voice (isang beses, may internet).
   Kasama na ito sa setup.bat. Patakbuhin ulit kung gusto palitan ang boses.
 
+ELEVENLABS (Kristen voice, online, may bayad)
+  setup-elevenlabs.bat - ilagay ang API key. Kailangan ng paid plan (Starter pataas).
+  warm-voice.bat       - gawin na agad ang numbers 1-30 para mabilis ang unang tawag.
+  Kapag walang internet o ubos ang credits, automatic na Piper ang gagamitin.
+
 MGA SETTING (.env)
   QUEUE_WEIGHT_FAST/PRIORITY/REGULAR  - ratio ng Call Next (default 2:1:1)
   QUEUE_DEVICE_KEY                     - susi ng kiosk

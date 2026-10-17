@@ -14,8 +14,19 @@ return [
     'max_recalls' => 3,             // pagkatapos nito, i-mark as no-show
     'timezone' => 'Asia/Manila',
 
-    // Offline female voice (Piper). Installed by install-voice.bat.
+    // TV voice. ElevenLabs is used when ELEVENLABS_API_KEY is set (run setup-elevenlabs.bat);
+    // otherwise Piper (offline, install-voice.bat); otherwise the browser voice.
     'tts' => [
+        'elevenlabs' => [
+            'key' => env('ELEVENLABS_API_KEY'),
+            'voice' => env('ELEVENLABS_VOICE_ID', 'dfeOmy6Uay63tNhyO99j'), // Kristen (female, US English)
+            'model' => env('ELEVENLABS_MODEL', 'eleven_multilingual_v2'),
+            'stability' => env('ELEVENLABS_STABILITY', 0.8),  // high = steady, straight read
+            'similarity' => env('ELEVENLABS_SIMILARITY', 0.8),
+            'speed' => env('ELEVENLABS_SPEED', 1.0),
+            'timeout' => env('ELEVENLABS_TIMEOUT', 8),
+            'base_url' => env('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io'),
+        ],
         'piper' => env('PIPER_PATH', base_path('tools/piper/piper/' . (PHP_OS_FAMILY === 'Windows' ? 'piper.exe' : 'piper'))),
         'model' => env('PIPER_MODEL', base_path('tools/piper/voice.onnx')),
     ],

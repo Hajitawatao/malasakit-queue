@@ -45,7 +45,7 @@ class DisplayController extends Controller
                 'service' => ['code' => $t->service->code, 'name' => $t->service->name],
                 'counter' => ['name' => $t->counter?->spoken_name ?? $t->counter?->name],
                 'speech' => $text = $announcer->textFor($t),
-                'audio' => $announcer->audioFor($text),
+                'audio' => $announcer->cachedAudio($text),
             ]);
 
         // Huling 6 na tinawag ngayong araw (para sa "Recent calls" sa TV)
@@ -65,7 +65,7 @@ class DisplayController extends Controller
 
         return [
             'calls' => $calls,
-            'voice_engine' => $announcer->available() ? 'piper' : 'browser',
+            'voice_engine' => $announcer->engine(),
             'recent' => $recent,
             'services' => Service::active()->get()->map(fn (Service $s) => [
                 'id' => $s->id,
@@ -89,6 +89,8 @@ class DisplayController extends Controller
     {
         $text = 'Now calling number R 1. Please proceed to D S W D, Window 1.';
 
-        return ['speech' => $text, 'audio' => $announcer->audioFor($text), 'voice_engine' => $announcer->available() ? 'piper' : 'browser'];
+        $audio = $announcer->audioFor($text);
+
+        return ['speech' => $text, 'audio' => $audio, 'voice_engine' => $audio ? $announcer->engine() : 'browser'];
     }
 }

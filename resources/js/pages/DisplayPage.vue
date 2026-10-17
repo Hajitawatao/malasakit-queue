@@ -98,7 +98,7 @@
       <span>Tap anywhere to start the display and voice</span>
       <small>{{ voiceLabel }}</small>
       <small v-if="snapshot.voice_engine === 'browser'" class="hint">
-        For the natural female voice, run install-voice.bat on the server PC.
+        For a better voice, run setup-elevenlabs.bat or install-voice.bat on the server PC.
       </small>
     </button>
     <button v-if="started" class="test-voice" type="button" @click="testVoice">Test voice</button>
@@ -133,11 +133,11 @@ const laneOf = (code) => ({ F: 'fast', P: 'priority' })[code?.[0]] ?? 'regular'
 const snapshot = ref({ services: [], calls: [], recent: [], voice_engine: null })
 const flash = ref(null)
 const browserVoice = ref(null)
-const voiceLabel = computed(() =>
-  snapshot.value.voice_engine === 'piper'
-    ? 'Voice: natural female (offline, Piper)'
-    : `Voice: ${browserVoice.value ?? 'browser default'} (browser)`,
-)
+const voiceLabel = computed(() => {
+  if (snapshot.value.voice_engine === 'elevenlabs') return 'Voice: ElevenLabs (online)'
+  if (snapshot.value.voice_engine === 'piper') return 'Voice: natural female (offline, Piper)'
+  return `Voice: ${browserVoice.value ?? 'browser default'} (browser)`
+})
 
 async function testVoice() {
   try {

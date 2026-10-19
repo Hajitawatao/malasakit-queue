@@ -127,10 +127,9 @@ return [
     |
     */
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
-    ),
+    // Unique name: other Laravel systems on this PC (other ports, same host) must not
+    // overwrite this app's session cookie.
+    'cookie' => env('SESSION_COOKIE', 'malasakit_queue_session'),
 
     /*
     |--------------------------------------------------------------------------

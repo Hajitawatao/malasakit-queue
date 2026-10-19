@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
-/** Session-based (Sanctum SPA) login para sa counter staff. */
+/** Session-based (Sanctum SPA) login for window staff. */
 class AuthController extends Controller
 {
     public function login(Request $request)
@@ -23,7 +23,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return $request->user()->load('counter.service');
+        return $request->user()->load('counter.service')->toArray() + ['csrf_token' => csrf_token()];
     }
 
     public function me(Request $request)
@@ -37,6 +37,6 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->noContent();
+        return response()->json(['csrf_token' => csrf_token()]);
     }
 }

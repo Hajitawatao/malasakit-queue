@@ -23,7 +23,7 @@ return [
             'model' => env('ELEVENLABS_MODEL', 'eleven_multilingual_v2'),
             'stability' => env('ELEVENLABS_STABILITY', 0.8),  // high = steady, straight read
             'similarity' => env('ELEVENLABS_SIMILARITY', 0.8),
-            'speed' => env('ELEVENLABS_SPEED', 1.0),
+            'speed' => env('ELEVENLABS_SPEED', 0.9),
             'timeout' => env('ELEVENLABS_TIMEOUT', 8),
             'base_url' => env('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io'),
         ],
@@ -32,7 +32,7 @@ return [
             'exe' => env('KOKORO_EXE', base_path('tools/kokoro/bin/sherpa-onnx-offline-tts' . (PHP_OS_FAMILY === 'Windows' ? '.exe' : ''))),
             'model_dir' => env('KOKORO_MODEL_DIR', base_path('tools/kokoro/model')),
             'voice' => env('KOKORO_VOICE', 'af_heart'), // female: af_heart, af_bella, af_sarah, af_nicole, bf_emma ...
-            'speed' => env('KOKORO_SPEED', 1.0),        // 1.0 = normal; 0.9 = a little slower
+            'speed' => env('KOKORO_SPEED', 0.85),       // 1.0 = normal; lower = slower (0.85 is clear for a hall)
             'threads' => env('KOKORO_THREADS', 4),
         ],
         'piper' => env('PIPER_PATH', base_path('tools/piper/piper/' . (PHP_OS_FAMILY === 'Windows' ? 'piper.exe' : 'piper'))),

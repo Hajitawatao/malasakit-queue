@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Log;
  *   4. Browser voice             — handled by the TV itself when no file exists.
  *
  * Every sentence is generated once and cached in public/tts/. Ticket numbers reset
- * daily, so "F 12 ... DSWD, Window 1" is the same file every day.
+ * daily, so "F, zero, one, two ... DSWD, Window 1" is the same file every day.
  *
  * Files are made by the voice worker (php artisan voice:worker, started by start.bat),
  * never inside a web request, so the single-threaded web server never waits for audio.
@@ -36,7 +36,7 @@ class Announcer
 
     // ---- what is said ----------------------------------------------------
 
-    /** "Now calling number F 12. Please proceed to D S W D, Window 1." */
+    /** "Now calling number, P, zero, zero, one. Please proceed to D S W D, Window 1." */
     public function textFor(Ticket $ticket): string
     {
         $ticket->loadMissing('service', 'counter');
@@ -57,11 +57,22 @@ class Announcer
     public function sentence(Lane $lane, int $number, ?string $service, ?string $window): string
     {
         return trim(sprintf(
-            'Now calling number %s %d. Please proceed to %s.',
-            $lane->prefix(),
-            $number,
+            'Now calling number, %s. Please proceed to %s.',
+            $this->spokenCode($lane->prefix(), $number),
             implode(', ', array_filter([$service, $window]))
         ));
+    }
+
+    /**
+     * Ticket code read one character at a time, exactly as printed:
+     * P001 -> "P, zero, zero, one" (commas make the voice pause between them).
+     */
+    public function spokenCode(string $prefix, int $number): string
+    {
+        $words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+        $digits = str_pad((string) $number, (int) config('queue_system.number_padding', 3), '0', STR_PAD_LEFT);
+
+        return implode(', ', array_merge([$prefix], array_map(fn ($d) => $words[(int) $d], str_split($digits))));
     }
 
     // ---- files -----------------------------------------------------------
@@ -222,7 +233,7 @@ class Announcer
         $model = (string) config('queue_system.tts.model');
         $tmp = $path . '.part.wav';
 
-        $cmd = [$exe, '--model', $model, '--output_file', $tmp];
+        $cmd = [$exe, '--model', $model, '--output_file', $tmp, '--length_scale', '1.15']; // a bit slower
         $espeak = dirname($exe) . DIRECTORY_SEPARATOR . 'espeak-ng-data';
         if (is_dir($espeak)) {
             array_push($cmd, '--espeak_data', $espeak);

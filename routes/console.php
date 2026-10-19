@@ -97,7 +97,7 @@ Artisan::command('voice:worker {--ahead=3 : waiting tickets to prepare per lane}
 // php artisan voice:test  -> makes one sample announcement and prints the file path
 Artisan::command('voice:test', function (Announcer $announcer) {
     Cache::forget('tts:elevenlabs:down'); // retry ElevenLabs right away
-    $text = 'Now calling number R 1. Please proceed to D S W D, Window 1.';
+    $text = $announcer->sentence(Lane::Regular, 1, 'D S W D', 'Window 1');
     $engine = $announcer->engine();
     $this->line('Engine: ' . $engine);
     $url = $announcer->audioFor($text);

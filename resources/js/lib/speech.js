@@ -38,15 +38,19 @@ export function browserVoiceName() {
   return browserVoice?.name ?? null
 }
 
-/** "F012" -> "F 12" so it is read straight: "F twelve". */
+const DIGITS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+
+/** "P001" -> "P, zero, zero, one": read exactly as printed, one character at a time. */
 export function speakableCode(code) {
-  const m = /^([A-Z])0*(\d+)$/.exec(code ?? '')
-  return m ? `${m[1]} ${m[2]}` : code
+  return (code ?? '')
+    .split('')
+    .map((ch) => (/\d/.test(ch) ? DIGITS[+ch] : ch))
+    .join(', ')
 }
 
 function fallbackText(t) {
   const where = [t.service?.name, t.counter?.name].filter(Boolean).join(', ')
-  return `Now calling number ${speakableCode(t.code)}. Please proceed to ${where}.`
+  return `Now calling number, ${speakableCode(t.code)}. Please proceed to ${where}.`
 }
 
 function speakBrowser(text) {
@@ -58,7 +62,7 @@ function speakBrowser(text) {
     } else {
       u.lang = 'en-US'
     }
-    u.rate = 0.92
+    u.rate = 0.82 // slower and clearer for a waiting hall
     u.pitch = 1
     u.onend = resolve
     u.onerror = resolve

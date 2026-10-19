@@ -106,7 +106,7 @@ class DisplayController extends Controller
     /** Plays a sample announcement (TV "Test voice" button). */
     public function testVoice(Announcer $announcer)
     {
-        $text = 'Now calling number R 1. Please proceed to D S W D, Window 1.';
+        $text = $announcer->sentence(\App\Enums\Lane::Regular, 1, 'D S W D', 'Window 1');
 
         $audio = $announcer->audioFor($text);
 

@@ -1,12 +1,10 @@
 <template>
-  <main class="tv">
+  <main class="tv" :class="{ 'no-rail': !showRail }">
     <header class="top">
-      <div class="brand">
-        <img class="brand-logo" :src="'/logos/r1mc.png'" alt="" @error="(e) => (e.target.style.display = 'none')" />
-        <div class="brand-text">
+      <img class="seal" :src="'/logos/r1mc.png'" alt="" @error="hideOnError" />
+      <div class="org">
         <span class="hospital">Region 1 Medical Center</span>
         <span class="center">Malasakit Center</span>
-        </div>
       </div>
       <div class="clock">
         <span class="time">{{ time }}</span>
@@ -15,47 +13,49 @@
     </header>
 
     <div class="body">
-      <section class="boards">
+      <!-- Boards: any number of services, any number of windows each -->
+      <section class="boards" :style="{ '--cols': grid.cols, '--grid-rows': grid.rows }">
         <article
-          v-for="s in snapshot.services"
+          v-for="s in services"
           :key="s.id"
           class="board"
-          :style="{ '--agency': agencyColor(s.code) }"
+          :style="{ '--agency': agencyColor(s.code), '--rows': Math.max(1, s.windows.length) }"
         >
           <header class="board-head">
-            <span v-if="s.logo" class="badge"><img :src="s.logo" alt="" @error="(e) => (e.target.parentElement.style.display = 'none')" /></span>
+            <AgencyBadge class="badge" :code="s.code" :logo="s.logo" :name="s.name" />
             <h2>{{ s.name }}</h2>
+            <span class="waiting"><strong>{{ s.waiting_total }}</strong> naghihintay</span>
           </header>
 
-          <div class="now" :class="{ multi: s.now_serving.length > 1 }">
-            <p class="caption">Now serving</p>
-            <template v-if="s.now_serving.length">
-              <div v-for="t in s.now_serving" :key="t.code" class="serving" :class="t.lane">
-                <span class="code">{{ t.code }}</span>
-                <span class="where">
-                  <span class="window">{{ t.counter }}</span>
-                  <span v-if="t.lane !== 'regular'" class="lane-tag">{{ laneLabel[t.lane] }}</span>
-                </span>
-              </div>
-            </template>
-            <p v-else class="idle">Waiting for the next call</p>
-          </div>
+          <ul class="windows">
+            <li
+              v-for="w in s.windows"
+              :key="w.id"
+              :class="['window', w.lane, { idle: !w.code, fresh: isFresh(s.code, w.code) }]"
+            >
+              <span class="w-name">{{ w.name }}</span>
+              <span class="w-code">{{ w.code || 'Bukas' }}</span>
+              <span class="w-state">
+                <template v-if="w.code">
+                  <span v-if="w.lane !== 'regular'" class="lane-tag">{{ LANES[w.lane].label }}</span>
+                  {{ w.status === 'serving' ? 'Serving' : 'Calling' }}
+                </template>
+                <template v-else>Open · waiting for next call</template>
+              </span>
+            </li>
+          </ul>
 
-          <div class="next">
-            <p class="caption">Next in line</p>
+          <footer class="next">
+            <span class="next-label">Susunod</span>
             <ol v-if="s.next.length" class="chips">
               <li v-for="c in s.next" :key="c" :class="laneOf(c)">{{ c }}</li>
             </ol>
-            <p v-else class="none">No one waiting</p>
-          </div>
-
-          <footer class="board-foot">
-            <strong>{{ s.waiting_total }}</strong> waiting
+            <span v-else class="none">Walang naghihintay</span>
           </footer>
         </article>
       </section>
 
-      <aside class="recent">
+      <aside v-if="showRail" class="recent">
         <h3>Recent calls</h3>
         <ol v-if="snapshot.recent?.length">
           <li
@@ -65,11 +65,7 @@
             :style="{ '--agency': agencyColor(r.service.code) }"
           >
             <span class="r-code">{{ r.code }}</span>
-            <span class="r-where">
-              <span>{{ r.service.name }}</span>
-              <span class="r-window">{{ r.counter }}</span>
-            </span>
-            <span class="r-time">{{ r.time }}</span>
+            <span class="r-where"><b>{{ r.service.name }}</b><i>{{ r.counter }} · {{ r.time }}</i></span>
           </li>
         </ol>
         <p v-else class="none">No calls yet today</p>
@@ -78,19 +74,19 @@
 
     <footer class="legend">
       <ul>
-        <li class="fast"><b>F</b> Fast lane: senior citizen, PWD, buntis</li>
-        <li class="priority"><b>P</b> Priority: may referral</li>
+        <li class="fast"><b>F</b> Fast lane · Senior, PWD, buntis</li>
+        <li class="priority"><b>P</b> Priority · May referral</li>
         <li class="regular"><b>R</b> Regular</li>
       </ul>
       <p>Hintayin po ang pagtawag ng inyong numero.</p>
     </footer>
 
-    <!-- Full-screen call announcement -->
+    <!-- Full-screen call announcement (shown together with the chime) -->
     <div v-if="flash" class="flash" :style="{ '--agency': agencyColor(flash.service.code) }">
-      <span v-if="logoFor(flash.service.code)" class="flash-badge"><img :src="logoFor(flash.service.code)" alt="" /></span>
+      <AgencyBadge class="flash-badge" :code="flash.service.code" :name="flash.service.name" />
       <p class="flash-lead">Now calling</p>
       <div class="flash-code">{{ flash.code }}</div>
-      <p class="flash-where">Please proceed to {{ flash.service.name }}, {{ flash.counter?.name }}</p>
+      <p class="flash-where">{{ flash.service.name }} · {{ flash.counter?.name }}</p>
       <p class="flash-tl">Pumunta po sa {{ flash.service.name }}, {{ flash.counter?.name }}</p>
     </div>
 
@@ -98,7 +94,7 @@
       <span>Tap anywhere to start the display and voice</span>
       <small>{{ voiceLabel }}</small>
       <small v-if="snapshot.voice_engine === 'browser'" class="hint">
-        For a better voice, run setup-elevenlabs.bat or install-voice.bat on the server PC.
+        For a better voice, run install-kokoro.bat on the server PC.
       </small>
     </button>
     <button v-if="started" class="test-voice" type="button" @click="testVoice">Test voice</button>
@@ -107,51 +103,55 @@
 </template>
 
 <script setup>
-import '@fontsource/barlow-condensed/600.css'
-import '@fontsource/barlow-condensed/700.css'
-import '@fontsource/barlow/500.css'
-import '@fontsource/barlow/600.css'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../lib/api'
 import { announce, browserVoiceName, unlockAudio } from '../lib/speech'
+import { LANES, agencyColor, hideOnError, laneOf } from '../lib/agency'
+import AgencyBadge from '../components/AgencyBadge.vue'
 
-const POLL_MS = 2000
+const POLL_MS = 1500
+const VOICE_WAIT_MS = 12000 // after this, speak with the browser voice instead
 
-// Kulay ng bawat ahensya para makilala agad ang column mula sa malayo
-const AGENCY = {
-  DOH: '#0F7B5F',
-  DSWD: '#2456B3',
-  PHIC: '#4E9A2F',
-  PAGCOR: '#B4161B',
-}
-const agencyColor = (code) => AGENCY[code] ?? '#3B5B7E'
-const logoFor = (code) => snapshot.value.services.find((s) => s.code === code)?.logo ?? null
-
-const laneLabel = { fast: 'Fast lane', priority: 'Priority', regular: 'Regular' }
-const laneOf = (code) => ({ F: 'fast', P: 'priority' })[code?.[0]] ?? 'regular'
+/*
+ * One TV can show a subset of services: /display?services=DOH,DSWD
+ * Hide the recent-calls rail on narrow or crowded screens: /display?rail=0
+ */
+const params = new URLSearchParams(location.search)
+const only = (params.get('services') || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
 
 const snapshot = ref({ services: [], calls: [], recent: [], voice_engine: null })
 const flash = ref(null)
-const browserVoice = ref(null)
-const voiceLabel = computed(() => {
-  if (snapshot.value.voice_engine === 'elevenlabs') return 'Voice: ElevenLabs (online)'
-  if (snapshot.value.voice_engine === 'piper') return 'Voice: natural female (offline, Piper)'
-  return `Voice: ${browserVoice.value ?? 'browser default'} (browser)`
-})
-
-async function testVoice() {
-  try {
-    const { data } = await api.get('/display/test-voice')
-    announce({ code: 'R001', service: { name: 'DSWD' }, counter: { name: 'Window 1' }, speech: data.speech, audio: data.audio })
-  } catch {
-    announce({ code: 'R001', service: { name: 'DSWD' }, counter: { name: 'Window 1' } })
-  }
-}
 const started = ref(false)
 const offline = ref(false)
 const time = ref('')
 const date = ref('')
-const seen = new Set() // mga tawag na nabasa na (id@called_at)
+const browserVoice = ref(null)
+const freshCalls = ref(new Map()) // "DSWD:R027" -> timestamp, highlights a window for a few seconds
+
+const services = computed(() =>
+  snapshot.value.services.filter((s) => !only.length || only.includes(s.code)),
+)
+const showRail = computed(() => params.get('rail') !== '0' && services.value.length <= 6)
+
+// Up to 4 boards per row; more services wrap into extra rows
+const grid = computed(() => {
+  const n = Math.max(1, services.value.length)
+  const rows = Math.ceil(n / 4)
+  return { rows, cols: Math.ceil(n / rows) }
+})
+
+const voiceLabel = computed(() => {
+  const e = snapshot.value.voice_engine
+  if (e === 'elevenlabs') return 'Voice: ElevenLabs (online)'
+  if (e === 'kokoro') return 'Voice: Kokoro natural female (offline)'
+  if (e === 'piper') return 'Voice: Piper female (offline)'
+  return `Voice: ${browserVoice.value ?? 'browser default'} (browser)`
+})
+
+const isFresh = (service, code) => code && Date.now() - (freshCalls.value.get(`${service}:${code}`) ?? 0) < 12000
+
+const seen = new Set() // calls already handled (id@called_at)
+const pendingVoice = new Map() // calls waiting for their voice file: key -> { call, since }
 let firstLoad = true
 let pollTimer, clockTimer, flashTimer
 
@@ -164,20 +164,46 @@ async function refresh() {
     for (const call of data.calls) {
       if (seen.has(call.key)) continue
       seen.add(call.key)
-      if (!firstLoad) onCalled(call) // huwag basahin ang mga lumang tawag sa unang load
+      if (!firstLoad) pendingVoice.set(call.key, { call, since: Date.now() }) // skip old calls on first load
     }
     firstLoad = false
     if (seen.size > 500) seen.clear()
+
+    // Announce each call as soon as its voice file is ready (usually right away,
+    // because the voice worker prepares waiting tickets ahead of time)
+    const byKey = new Map(data.calls.map((c) => [c.key, c]))
+    for (const [key, item] of pendingVoice) {
+      const latest = byKey.get(key) ?? item.call
+      if (latest.audio || Date.now() - item.since > VOICE_WAIT_MS || data.voice_engine === 'browser') {
+        pendingVoice.delete(key)
+        onCalled(latest)
+      }
+    }
   } catch {
     offline.value = true
   }
 }
 
-function onCalled(t) {
+function showFlash(t) {
   flash.value = t
+  freshCalls.value = new Map(freshCalls.value).set(`${t.service.code}:${t.code}`, Date.now())
   clearTimeout(flashTimer)
-  flashTimer = setTimeout(() => (flash.value = null), 9000)
-  if (started.value) announce(t)
+  flashTimer = setTimeout(() => (flash.value = null), 8000)
+}
+
+function onCalled(t) {
+  if (only.length && !only.includes(t.service?.code)) return // another TV handles it
+  if (started.value) announce(t, () => showFlash(t))
+  else showFlash(t)
+}
+
+async function testVoice() {
+  try {
+    const { data } = await api.get('/display/test-voice')
+    announce({ code: 'R001', service: { code: 'DSWD', name: 'DSWD' }, counter: { name: 'Window 1' }, speech: data.speech, audio: data.audio })
+  } catch {
+    announce({ code: 'R001', service: { code: 'DSWD', name: 'DSWD' }, counter: { name: 'Window 1' } })
+  }
 }
 
 function start() {
@@ -209,234 +235,203 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Sized for a 1920x1080 TV; everything scales with the screen width. */
+/*
+ * Fills any screen (16:9, ultrawide, portrait). Sizes come from the viewport and,
+ * inside each board, from the board's own size (container queries), so 3 services
+ * with 1 window each and 10 services with 4 windows each both stay readable.
+ */
 .tv {
-  --ink: #0E2238;
-  --ink-2: #16304D;
-  --ink-3: #21405F;
-  --paper: #F4F7FB;
-  --muted: #9DB2C9;
-  --sun: #F6C343;
-  --fast: #E5484D;
-  --priority: #F2A33A;
-  --regular: #DDE6F0;
-
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--ink);
-  color: var(--paper);
-  font-family: 'Barlow', system-ui, sans-serif;
+  color: #fff;
   overflow: hidden;
 }
 
-/* ---------- header ---------- */
+/* header */
 .top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 1.2vw 2vw 1vw;
+  gap: 1vw;
+  padding: 1vh 1.6vw;
+  background: var(--r1-navy);
+  border-bottom: 0.5vh solid var(--r1-gold);
 }
-.brand { display: flex; align-items: center; gap: 1vw; }
-.brand-logo { width: 4.4vw; height: 4.4vw; object-fit: contain; background: #fff; border-radius: 50%; padding: 0.15vw; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.05; }
-.hospital { font-size: 1.25vw; color: var(--muted); font-weight: 500; }
-.center {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 2.6vw;
-  letter-spacing: 0.01em;
-}
-.clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.05; }
-.time {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-  font-size: 2.8vw;
-  font-variant-numeric: tabular-nums;
-}
-.date { font-size: 1.15vw; color: var(--muted); }
+.seal { width: 6vh; height: 6vh; border-radius: 50%; background: #fff; padding: 0.15vh; }
+.org { display: flex; flex-direction: column; line-height: 1.02; }
+.hospital { font-size: 1.9vh; color: var(--muted-on-dark); }
+.center { font: 700 4vh var(--display); }
+.clock { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.02; }
+.time { font: 600 4.4vh var(--display); font-variant-numeric: tabular-nums; }
+.date { font-size: 1.8vh; color: var(--muted-on-dark); }
 
-/* ---------- main area ---------- */
+/* main */
 .body {
   display: grid;
-  grid-template-columns: 1fr 19vw;
+  grid-template-columns: minmax(0, 1fr) clamp(240px, 18vw, 400px);
   gap: 1vw;
-  padding: 0 2vw 1vw;
+  padding: 1.2vh 1.2vw;
   min-height: 0;
 }
+.tv.no-rail .body { grid-template-columns: minmax(0, 1fr); }
 .boards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--grid-rows), minmax(0, 1fr));
   gap: 1vw;
   min-height: 0;
 }
 
+/* a service board */
 .board {
-  display: flex;
-  flex-direction: column;
+  container-type: size;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--ink-2);
-  border-radius: 0.6vw;
+  border-radius: 1vh;
   overflow: hidden;
-  border-top: 0.55vw solid var(--agency);
+  border-top: 1vh solid var(--agency);
 }
 .board-head {
   display: flex;
   align-items: center;
-  gap: 0.7vw;
-  padding: 0.9vw 1.1vw;
-  background: color-mix(in srgb, var(--agency) 28%, var(--ink-2));
+  gap: 2.2cqw;
+  padding: 2.4cqh 3cqw;
+  background: color-mix(in srgb, var(--agency) 30%, var(--ink-2));
 }
-.badge {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 3.2vw;
-  height: 3.2vw;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 0.15vw color-mix(in srgb, var(--agency) 60%, #fff);
-}
-.badge img { width: 78%; height: 78%; object-fit: contain; }
-.board-head h2 {
+.badge { width: clamp(28px, 11cqw, 76px); }
+.board-head h2 { margin: 0; font: 700 clamp(18px, 9cqw, 64px) / 1 var(--display); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.waiting { margin-left: auto; text-align: right; font-size: clamp(11px, 3cqw, 20px); color: var(--muted-on-dark); line-height: 1.1; white-space: nowrap; }
+.waiting strong { display: block; font: 700 clamp(18px, 7cqw, 46px) / 1 var(--display); color: #fff; }
+
+/* windows: one row each, the number fills the row */
+.windows {
+  list-style: none;
   margin: 0;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 2.1vw;
-  line-height: 1;
+  padding: 1.4cqh 3cqw;
+  display: grid;
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr));
+  gap: 1.4cqh;
+  min-height: 0;
 }
-
-.caption {
-  margin: 0 0 0.3vw;
-  font-size: 1.05vw;
-  font-weight: 600;
-  color: var(--muted);
+.window {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  padding: 0 0 0 2.6cqw;
+  border-left: max(4px, 1.4cqw) solid var(--regular);
+  min-height: 0;
 }
-
-.now { padding: 1.2vw 1.1vw 0.8vw; flex: 1; display: flex; flex-direction: column; gap: 0.8vw; }
-.now .caption { margin-bottom: auto; }
-.now > :last-child { margin-bottom: auto; }
-.serving {
+.window.fast { border-left-color: var(--fast); }
+.window.priority { border-left-color: var(--priority); }
+.window.idle { border-left-color: var(--ink-3); }
+.w-name { grid-column: 1 / -1; font: 600 clamp(12px, min(5cqw, calc(9cqh / var(--rows))), 30px) var(--text); color: var(--muted-on-dark); }
+.w-code {
+  font: 700 clamp(28px, min(30cqw, calc(52cqh / var(--rows))), 320px) / 0.9 var(--display);
+  color: var(--r1-gold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+.window.idle .w-code { color: var(--ink-3); font-size: clamp(20px, min(14cqw, calc(26cqh / var(--rows))), 120px); }
+.w-state {
+  justify-self: end;
+  align-self: end;
   display: flex;
   flex-direction: column;
-  border-left: 0.45vw solid var(--regular);
-  padding-left: 0.9vw;
+  align-items: flex-end;
+  gap: 0.6cqh;
+  font-size: clamp(11px, min(3.6cqw, calc(7cqh / var(--rows))), 24px);
+  color: var(--muted-on-dark);
+  padding-bottom: 1cqh;
 }
-.serving.fast { border-color: var(--fast); }
-.serving.priority { border-color: var(--priority); }
-.serving .code {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 7.4vw;
-  line-height: 0.92;
-  letter-spacing: 0.01em;
-  color: var(--sun);
-  font-variant-numeric: tabular-nums;
-}
-.now.multi .serving .code { font-size: 4.6vw; }
-.where { display: flex; align-items: baseline; gap: 0.7vw; flex-wrap: wrap; }
-.window { font-size: 1.7vw; font-weight: 600; }
-.lane-tag {
-  font-size: 1vw;
-  font-weight: 600;
-  padding: 0.1vw 0.5vw;
-  border-radius: 0.3vw;
-  background: var(--fast);
-  color: #fff;
-}
-.serving.priority .lane-tag { background: var(--priority); color: var(--ink); }
-.idle { margin: 0.6vw 0 0; font-size: 1.5vw; color: var(--muted); }
+.lane-tag { padding: 0.2em 0.6em; border-radius: 0.4em; background: var(--fast); color: #fff; font-weight: 600; }
+.window.priority .lane-tag { background: var(--priority); color: var(--ink); }
+.window.fresh .w-code { animation: called 1s ease-in-out 4; }
+@keyframes called { 50% { color: #fff; } }
 
-.next { padding: 0.8vw 1.1vw; border-top: 1px solid var(--ink-3); }
-.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.45vw; }
+/* next in line */
+.next {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  padding: 2cqh 3cqw;
+  border-top: 1px solid var(--ink-3);
+  min-width: 0;
+}
+.next-label { font-size: clamp(11px, 3.2cqw, 20px); color: var(--muted-on-dark); white-space: nowrap; }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.4cqw; overflow: hidden; flex-wrap: nowrap; min-width: 0; }
 .chips li {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-  font-size: 1.75vw;
-  padding: 0.1vw 0.6vw;
-  border-radius: 0.3vw;
+  flex: none;
+  font: 600 clamp(14px, 5.4cqw, 36px) / 1.2 var(--display);
+  padding: 0 0.4em;
+  border-radius: 0.2em;
   background: var(--ink-3);
-  border-left: 0.3vw solid var(--regular);
+  border-left: 0.18em solid var(--regular);
   font-variant-numeric: tabular-nums;
 }
 .chips li.fast { border-color: var(--fast); }
 .chips li.priority { border-color: var(--priority); }
-.none { margin: 0; font-size: 1.2vw; color: var(--muted); }
+.none { font-size: clamp(11px, 3.4cqw, 22px); color: var(--muted-on-dark); }
 
-.board-foot {
-  padding: 0.7vw 1.1vw;
-  font-size: 1.2vw;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--ink) 40%, var(--ink-2));
-}
-.board-foot strong { color: var(--paper); font-size: 1.5vw; }
-
-/* ---------- recent calls ---------- */
+/* recent calls */
 .recent {
   background: var(--ink-2);
-  border-radius: 0.6vw;
-  padding: 1vw;
+  border-radius: 1vh;
+  padding: 1.6vh 1vw;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
-.recent h3 {
-  margin: 0 0 0.6vw;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 1.8vw;
-}
-.recent ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5vw; }
+.recent h3 { margin: 0 0 1vh; font: 700 3vh var(--display); }
+.recent ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.9vh; }
 .recent li {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.7vw;
-  padding: 0.55vw 0.7vw;
-  border-radius: 0.4vw;
+  gap: 0.8vw;
+  padding: 0.9vh 0.7vw;
+  border-radius: 0.6vh;
   background: var(--ink-3);
-  border-left: 0.4vw solid var(--agency);
+  border-left: 0.6vh solid var(--agency);
 }
-.recent li.latest { background: color-mix(in srgb, var(--agency) 35%, var(--ink-3)); }
-.r-code {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 2.2vw;
-  line-height: 1;
-  min-width: 4.6vw;
-  font-variant-numeric: tabular-nums;
-}
-.recent li.latest .r-code { color: var(--sun); }
-.r-where { display: flex; flex-direction: column; font-size: 1vw; line-height: 1.2; }
-.r-window { color: var(--muted); }
-.r-time { font-size: 0.95vw; color: var(--muted); font-variant-numeric: tabular-nums; }
+.recent li.latest { background: color-mix(in srgb, var(--agency) 38%, var(--ink-3)); }
+.r-code { font: 700 3.3vh / 1 var(--display); font-variant-numeric: tabular-nums; }
+.recent li.latest .r-code { color: var(--r1-gold); }
+.r-where { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.r-where b, .r-where i { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-where b { font-size: 1.9vh; font-weight: 600; }
+.r-where i { font-style: normal; font-size: 1.6vh; color: var(--muted-on-dark); font-variant-numeric: tabular-nums; }
 
-/* ---------- legend ---------- */
+/* legend */
 .legend {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8vw 2vw;
+  gap: 2vw;
+  padding: 1vh 1.6vw;
   background: var(--ink-2);
-  font-size: 1.15vw;
+  font-size: 1.9vh;
 }
-.legend ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 2vw; }
-.legend li { display: flex; align-items: center; gap: 0.5vw; color: var(--muted); }
+.legend ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 2.4vw; }
+.legend li { display: flex; align-items: center; gap: 0.6vw; color: var(--muted-on-dark); }
 .legend b {
   display: inline-grid;
   place-items: center;
-  width: 1.7vw;
-  height: 1.7vw;
-  border-radius: 0.3vw;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.2vw;
-  color: var(--ink);
+  width: 3vh;
+  height: 3vh;
+  border-radius: 0.5vh;
+  font: 700 2vh var(--display);
   background: var(--regular);
+  color: #fff;
 }
-.legend .fast b { background: var(--fast); color: #fff; }
-.legend .priority b { background: var(--priority); }
+.legend .fast b { background: var(--fast); }
+.legend .priority b { background: var(--priority); color: var(--ink); }
 .legend p { margin: 0; font-weight: 600; }
 
-/* ---------- call announcement ---------- */
+/* call announcement */
 .flash {
   position: fixed;
   inset: 0;
@@ -447,83 +442,55 @@ onUnmounted(() => {
   justify-content: center;
   text-align: center;
   background: var(--agency);
-  color: #fff;
-  animation: flash-in 0.5s ease-out;
+  animation: flash-in 0.45s ease-out;
 }
-.flash-badge {
-  display: grid;
-  place-items: center;
-  width: 9vw;
-  height: 9vw;
-  margin-bottom: 1.2vw;
-  border-radius: 50%;
-  background: #fff;
-}
-.flash-badge img { width: 78%; height: 78%; object-fit: contain; }
-.flash-lead { margin: 0; font-size: 2.6vw; font-weight: 600; opacity: 0.9; }
-.flash-code {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 700;
-  font-size: 24vw;
-  line-height: 0.9;
-  color: var(--sun);
-  text-shadow: 0 0.4vw 0 rgba(0, 0, 0, 0.18);
-  font-variant-numeric: tabular-nums;
-}
-.flash-where { margin: 1.2vw 0 0; font-size: 3.4vw; font-weight: 600; }
-.flash-tl { margin: 0.4vw 0 0; font-size: 2.4vw; opacity: 0.9; }
-@keyframes flash-in {
-  from { opacity: 0; transform: scale(1.04); }
-  to { opacity: 1; transform: none; }
-}
+.flash-badge { width: 15vh; margin-bottom: 2vh; }
+.flash-lead { margin: 0; font-size: 4.4vh; font-weight: 600; opacity: 0.9; }
+.flash-code { font: 700 min(42vh, 26vw) / 0.9 var(--display); color: var(--r1-gold); text-shadow: 0 0.6vh 0 rgba(0, 0, 0, 0.18); font-variant-numeric: tabular-nums; }
+.flash-where { margin: 2vh 0 0; font: 700 6.4vh var(--display); }
+.flash-tl { margin: 0.6vh 0 0; font-size: 3.8vh; opacity: 0.9; }
+@keyframes flash-in { from { opacity: 0; transform: scale(1.03); } to { opacity: 1; transform: none; } }
 
 .start {
   position: fixed;
   inset: 0;
   z-index: 20;
-  border: 0;
-  background: rgba(14, 34, 56, 0.92);
-  color: var(--paper);
-  font: 600 2.4vw 'Barlow', sans-serif;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1vw;
+  gap: 1.6vh;
+  border: 0;
+  background: rgba(14, 24, 56, 0.94);
+  color: #fff;
+  font: 600 4vh var(--text);
+  cursor: pointer;
 }
-.start small { font-size: 1.2vw; font-weight: 500; color: var(--muted); }
-.start .hint { color: var(--sun); }
+.start small { font-size: 2.2vh; font-weight: 500; color: var(--muted-on-dark); }
+.start .hint { color: var(--r1-gold); }
 .test-voice {
   position: fixed;
-  right: 0.6vw;
-  bottom: 3.6vw;
+  right: 0.8vw;
+  bottom: 6vh;
   z-index: 5;
   border: 0;
-  border-radius: 0.3vw;
-  padding: 0.3vw 0.7vw;
-  font: 500 0.8vw 'Barlow', sans-serif;
+  padding: 0.4vh 0.8vw;
+  font: 500 1.4vh var(--text);
   background: transparent;
   color: var(--ink-3);
   cursor: pointer;
 }
-.test-voice:hover, .test-voice:focus-visible { color: var(--muted); outline: 1px solid var(--muted); }
-.start:focus-visible { outline: 0.3vw solid var(--sun); outline-offset: -1vw; }
+.test-voice:hover, .test-voice:focus-visible { color: var(--muted-on-dark); }
 .offline {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 30;
-  padding: 0.6vw;
+  padding: 1vh;
   text-align: center;
-  font-size: 1.3vw;
+  font-size: 2.2vh;
   font-weight: 600;
   background: var(--fast);
-  color: #fff;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .flash { animation: none; }
 }
 </style>

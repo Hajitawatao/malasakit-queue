@@ -12,9 +12,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Ginagamit ng PC station ng bawat bintana (DSWD, PAGCOR, atbp.).
- * Ang counter ay galing sa naka-login na user, hindi sa request,
- * para hindi makatawag ang DSWD staff sa pila ng PAGCOR.
+ * Used by the PC at each window (MSS-DOH, DSWD, PhilHealth).
+ * The window comes from the logged-in user, not from the request,
+ * so DSWD staff can never call PhilHealth's queue.
  */
 class CounterController extends Controller
 {

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Gumagawa ng bagong ticket galing sa kiosk.
  * Ang numero ay nagre-reset kada araw, hiwalay kada service at lane:
  *   DSWD  R001, R002...  F001, F002...  P001...
- *   PAGCOR R001...       (sariling bilang)
+ *   PHIC  R001...        (own numbering)
  */
 class TicketIssuer
 {

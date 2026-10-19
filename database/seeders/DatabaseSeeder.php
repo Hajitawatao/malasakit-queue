@@ -12,13 +12,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Dating 6 (Malasakit SW, DSWD, PhilHealth, DOH/MAIP, PCSO, PAGCOR)
-        // -> 4 na lang: pinagsama ang MSS at DOH/MAIP, tinanggal ang PCSO.
+        // Was 6 services (Malasakit SW, DSWD, PhilHealth, DOH/MAIP, PCSO, PAGCOR).
+        // Now 3: MSS and DOH merged as MSS-DOH; PCSO and PAGCOR removed.
         $services = [
-            ['code' => 'DOH',    'name' => 'MSS / DOH-MAIP', 'spoken_name' => 'M S S, D O H MAIP', 'logo_path' => 'logos/doh.png'],
-            ['code' => 'DSWD',   'name' => 'DSWD',           'spoken_name' => 'D S W D',           'logo_path' => 'logos/dswd.png'],
-            ['code' => 'PHIC',   'name' => 'PhilHealth',     'spoken_name' => 'PhilHealth',        'logo_path' => 'logos/philhealth.png'],
-            ['code' => 'PAGCOR', 'name' => 'PAGCOR',         'spoken_name' => 'PAGCOR',            'logo_path' => 'logos/pagcor.png'],
+            ['code' => 'DOH',  'name' => 'MSS-DOH',    'spoken_name' => 'M S S, D O H', 'logo_path' => 'logos/doh.png'],
+            ['code' => 'DSWD', 'name' => 'DSWD',       'spoken_name' => 'D S W D',      'logo_path' => 'logos/dswd.png'],
+            ['code' => 'PHIC', 'name' => 'PhilHealth', 'spoken_name' => 'PhilHealth',   'logo_path' => 'logos/philhealth.png'],
         ];
 
         foreach ($services as $i => $data) {
@@ -30,7 +29,7 @@ class DatabaseSeeder extends Seeder
             );
 
             User::updateOrCreate(
-                ['email' => strtolower($service->code) . '1'],   // username: doh1, dswd1, phic1, pcso1
+                ['email' => strtolower($service->code) . '1'],   // username: doh1, dswd1, phic1
                 [
                     'name' => "{$service->name} Staff 1",
                     'password' => Hash::make('changeme'),

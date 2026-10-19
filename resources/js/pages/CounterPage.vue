@@ -2,11 +2,12 @@
   <main v-if="state" class="desk" :style="{ '--agency': agencyColor(state.counter.service.code) }">
     <header class="bar">
       <div class="who">
-        <span v-if="logo" class="badge"><img :src="logo" alt="" @error="(e) => (e.target.parentElement.style.display = 'none')" /></span>
+        <AgencyBadge class="badge" :code="state.counter.service.code" :name="state.counter.service.name" />
         <h1>{{ state.counter.service.name }}</h1>
         <span>{{ state.counter.spoken_name || state.counter.name }}</span>
       </div>
       <div class="bar-right">
+        <img class="seal" :src="'/logos/r1mc.png'" alt="Region 1 Medical Center" />
         <span class="served"><strong>{{ state.served_today }}</strong> served today</span>
         <button class="logout" type="button" @click="logout">Log out</button>
       </div>
@@ -83,17 +84,13 @@
 </template>
 
 <script setup>
-import '@fontsource/barlow-condensed/700.css'
-import '@fontsource/barlow/500.css'
-import '@fontsource/barlow/600.css'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, ensureCsrf, errorMessage } from '../lib/api'
+import { agencyColor } from '../lib/agency'
+import AgencyBadge from '../components/AgencyBadge.vue'
 
-const AGENCY = { DOH: '#0F7B5F', DSWD: '#2456B3', PHIC: '#4E9A2F', PAGCOR: '#B4161B' }
-const agencyColor = (code) => AGENCY[code] ?? '#3B5B7E'
 const laneLabel = { fast: 'Fast lane', priority: 'Priority', regular: 'Regular' }
-const LOGOS = { DOH: '/logos/doh.png', DSWD: '/logos/dswd.png', PHIC: '/logos/philhealth.png', PAGCOR: '/logos/pagcor.png' }
 
 const router = useRouter()
 const state = ref(null)
@@ -104,7 +101,6 @@ const loadError = ref('')
 const now = ref(Date.now())
 let pollTimer, clockTimer, toastTimer
 
-const logo = computed(() => LOGOS[state.value?.counter?.service?.code] ?? null)
 
 const totalWaiting = computed(() => {
   const w = state.value?.waiting ?? {}
@@ -196,18 +192,12 @@ onUnmounted(() => {
 
 <style scoped>
 .desk {
-  --ink: #0E2238;
-  --line: #D5DEE9;
-  --soft: #EEF2F7;
-  --muted: #5B6F86;
-  --fast: #D93A3F;
-  --priority: #E08A12;
-  --regular: #6B7F96;
+  --soft: var(--paper);
 
   min-height: 100vh;
   background: var(--soft);
   color: var(--ink);
-  font-family: 'Barlow', system-ui, sans-serif;
+  font-family: var(--text);
   display: flex;
   flex-direction: column;
 }
@@ -221,11 +211,11 @@ onUnmounted(() => {
   color: #fff;
 }
 .who { display: flex; align-items: center; gap: 14px; }
-.badge { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #fff; flex: none; }
-.badge img { width: 78%; height: 78%; object-fit: contain; }
-.who h1 { margin: 0; font: 700 34px/1 'Barlow Condensed', sans-serif; }
+.badge { width: 46px; }
+.who h1 { margin: 0; font: 700 34px/1 var(--display); }
 .who span { font-size: 20px; font-weight: 600; opacity: 0.9; }
 .bar-right { display: flex; align-items: center; gap: 20px; }
+.seal { width: 40px; height: 40px; border-radius: 50%; background: #fff; padding: 1px; order: 3; }
 .served { font-size: 16px; opacity: 0.9; }
 .served strong { font-size: 20px; }
 .logout {
@@ -263,7 +253,7 @@ onUnmounted(() => {
 .current.fast { border-left-color: var(--fast); }
 .current.priority { border-left-color: var(--priority); }
 .code {
-  font: 700 clamp(96px, 12vw, 170px)/0.95 'Barlow Condensed', sans-serif;
+  font: 700 clamp(96px, 12vw, 170px)/0.95 var(--display);
   color: var(--agency);
   font-variant-numeric: tabular-nums;
   margin-top: 8px;
@@ -332,7 +322,7 @@ kbd {
   cursor: pointer;
   text-align: left;
 }
-.call-next span { font: 700 40px/1 'Barlow Condensed', sans-serif; }
+.call-next span { font: 700 40px/1 var(--display); }
 .call-next small { font-size: 18px; opacity: 0.9; }
 .call-next kbd { background: rgba(255, 255, 255, 0.18); border-color: rgba(255, 255, 255, 0.35); color: #fff; vertical-align: middle; }
 
@@ -353,7 +343,7 @@ kbd {
 button.lane { cursor: pointer; }
 .lane.fast { border-left-color: var(--fast); }
 .lane.priority { border-left-color: var(--priority); }
-.lane b { font: 700 28px/1 'Barlow Condensed', sans-serif; }
+.lane b { font: 700 28px/1 var(--display); }
 .lane.regular { color: var(--muted); }
 .hint { margin: 4px 2px 0; font-size: 14px; color: var(--muted); line-height: 1.4; }
 

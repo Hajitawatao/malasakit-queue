@@ -1,6 +1,5 @@
 <!--
-  Layout ng printout para sa 80mm thermal printer.
-  Nakatago sa screen; lalabas lang kapag window.print().
+  80mm thermal ticket. Hidden on screen; only shows when window.print() runs.
 -->
 <template>
   <div v-if="ticket" class="ticket-print">
@@ -12,7 +11,8 @@
     <div class="code">{{ ticket.code }}</div>
     <div class="lane">{{ ticket.lane_label }}</div>
     <div class="meta">{{ ticket.issued_at }}</div>
-    <div class="meta">Nauuna sa inyo: {{ ticket.ahead }}</div>
+    <div class="meta">Nauuna sa inyo / Ahead of you: {{ ticket.ahead }}</div>
+    <div v-if="ticket.ahead" class="meta">Tantiyang hintay / Est. wait: ~{{ ticket.estimated_minutes }} min</div>
     <div class="foot">Hintayin po ang pagtawag ng inyong numero.</div>
   </div>
 </template>

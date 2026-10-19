@@ -6,17 +6,16 @@ Web-based queueing para sa Malasakit Center: **touchscreen kiosk**, **TV display
 
 > Pang-install sa XAMPP: basahin ang **INSTALL.txt** (setup.bat → start.bat).
 
-## Mga serbisyo (4)
+## Services (3)
 
-| Code   | Pangalan        | Dati                               |
-|--------|-----------------|------------------------------------|
-| DOH    | MSS / DOH-MAIP  | Pinagsama ang Malasakit SW + DOH/MAIP |
-| DSWD   | DSWD            |                                    |
-| PHIC   | PhilHealth      |                                    |
-| PAGCOR | PAGCOR          |                                    |
-| ~~PCSO~~ | tinanggal     |                                    |
+| Code | Name       | Notes |
+|------|------------|-------|
+| DOH  | MSS-DOH    | Malasakit social worker + DOH assistance, merged |
+| DSWD | DSWD       | |
+| PHIC | PhilHealth | |
 
-Palitan sa `database/seeders/DatabaseSeeder.php`.
+PCSO and PAGCOR were removed (PAGCOR is deactivated by migration `2026_10_19_000001`, so its history stays).
+Change the list in `database/seeders/DatabaseSeeder.php` plus a migration for existing installs.
 
 ## Ticket numbering
 
@@ -28,7 +27,7 @@ Nagre-reset kada araw, hiwalay kada **service** at **lane**:
 | Priority  | `P`    | May referral / endorsement        |
 | Regular   | `R`    | Lahat ng iba                      |
 
-Kaya puwedeng sabay na may `DSWD F001` at `PAGCOR F001`. Laging kasama ang pangalan ng service sa display, printout at boses para walang kalituhan.
+Kaya puwedeng sabay na may `DSWD F001` at `PHIC F001`. Laging kasama ang pangalan ng service sa display, printout at boses para walang kalituhan.
 
 ## Tatlong screen (iisang Vue SPA)
 
@@ -106,7 +105,7 @@ QUEUE_WEIGHT_REGULAR=1
 ```
 
 ```bash
-php artisan migrate --seed       # gagawa ng doh1, dswd1, phic1, pagcor1, admin (password: changeme)
+php artisan migrate --seed       # gagawa ng doh1, dswd1, phic1, admin (password: changeme)
 npm run build
 php artisan reverb:start         # patakbuhin bilang Windows service / supervisor
 ```

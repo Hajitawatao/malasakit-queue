@@ -20,6 +20,11 @@ if not exist vendor\autoload.php (
     exit /b 1
 )
 
+rem ---- apply database updates that came with new versions (safe to run every time)
+"%PHP%" %PHPX% artisan migrate --force --no-interaction >nul 2>&1 || (
+    echo [!] Database update failed. Details: storage\logs\laravel.log
+)
+
 rem ---- make sure nothing else is using port 88
 netstat -ano | findstr /c:":%WEB_PORT% " | findstr /c:"LISTENING" >nul && (
     echo [ERROR] Port %WEB_PORT% is already in use by:
@@ -35,11 +40,15 @@ rem Web server on port 88 (PHP built-in server, same as "artisan serve")
 set "ROUTER=%~dp0vendor\laravel\framework\src\Illuminate\Foundation\resources\server.php"
 start "Malasakit Queue - WEB :%WEB_PORT%" /min cmd /k "cd /d "%~dp0public" && "%PHP%" %PHPX% -S 0.0.0.0:%WEB_PORT% "%ROUTER%""
 
+rem Voice worker: makes the TV announcements in the background (Kokoro / ElevenLabs / Piper)
+taskkill /fi "WINDOWTITLE eq Malasakit Queue - VOICE*" /t /f >nul 2>&1
+start "Malasakit Queue - VOICE" /min cmd /k ""%PHP%" %PHPX% artisan voice:worker"
+
 for /f "tokens=2 delims==" %%K in ('findstr /b /c:"QUEUE_DEVICE_KEY=" .env') do set "KEY=%%K"
 
 echo ==========================================================
 echo   MALASAKIT QUEUE IS RUNNING (port %WEB_PORT%)
-echo   Do not close the minimized server window.
+echo   Do not close the two minimized windows (WEB and VOICE).
 echo.
 echo   On this PC : http://localhost:%WEB_PORT%/display
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do for /f "tokens=*" %%b in ("%%a") do (

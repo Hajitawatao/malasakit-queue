@@ -17,8 +17,8 @@ UNANG BESES
 ARAW-ARAW
   1. START ang MySQL sa XAMPP.
   2. Double-click ang start.bat
-     - Isang naka-minimize na window ang bubukas (WEB :88).
-       HUWAG ISARA iyon.
+     - Dalawang naka-minimize na window ang bubukas (WEB :88 at VOICE).
+       HUWAG ISARA ang mga iyon.
   3. Para patayin: stop.bat
 
 MGA ADDRESS (palitan ang <IP> ng IP ng server, makikita sa start.bat)
@@ -27,10 +27,9 @@ MGA ADDRESS (palitan ang <IP> ng IP ng server, makikita sa start.bat)
   Counter : http://<IP>:88/login
 
 COUNTER LOGINS (password: changeme - PALITAN pagkatapos)
-  doh1     MSS / DOH-MAIP
+  doh1     MSS-DOH
   dswd1    DSWD
   phic1    PhilHealth
-  pagcor1  PAGCOR
   admin
 
 CHROME SHORTCUTS
@@ -40,7 +39,7 @@ CHROME SHORTCUTS
     chrome.exe --kiosk --autoplay-policy=no-user-gesture-required "http://<IP>:88/display"
 
 LOGOS
-  Ilagay sa public\logos\ : doh.png, dswd.png, philhealth.png, pagcor.png
+  Ilagay sa public\logos\ : doh.png, dswd.png, philhealth.png
   (Pangalan lang ang lalabas kapag wala pa.)
 
 AUTO-START KAPAG NAG-RESTART ANG PC
@@ -48,7 +47,12 @@ AUTO-START KAPAG NAG-RESTART ANG PC
   (Dapat naka-auto-start din ang MySQL ng XAMPP: XAMPP Control Panel > Config
    > Autostart of modules > MySQL.)
 
-BOSES (natural na babae, offline)
+BOSES - KOKORO (natural na babae, offline, libre)  << DEFAULT
+  install-kokoro.bat - i-download ang Kokoro voice (isang beses, ~155 MB).
+  Palitan ang boses sa .env: KOKORO_VOICE=af_heart (af_bella, af_sarah, bf_emma ...)
+  start.bat nagbubukas din ng "VOICE" window: siya ang gumagawa ng boses. HUWAG ISARA.
+
+BOSES - PIPER (backup, offline)
   install-voice.bat - i-download ang Piper at female voice (isang beses, may internet).
   Kasama na ito sa setup.bat. Patakbuhin ulit kung gusto palitan ang boses.
 

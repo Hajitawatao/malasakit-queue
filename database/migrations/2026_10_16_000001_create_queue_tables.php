@@ -11,8 +11,8 @@ return new class extends Migration
         // Mga ahensya/serbisyo sa kiosk (4 lang ngayon)
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 10)->unique();      // DOH, DSWD, PHIC, PAGCOR
-            $table->string('name');                     // "MSS / DOH-MAIP"
+            $table->string('code', 10)->unique();      // DOH, DSWD, PHIC
+            $table->string('name');                     // "MSS-DOH"
             $table->string('spoken_name');              // kung paano babanggitin ng TTS
             $table->string('logo_path')->nullable();
             $table->unsignedTinyInteger('sort_order')->default(0);

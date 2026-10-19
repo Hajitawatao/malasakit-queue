@@ -67,7 +67,7 @@ class DisplayController extends Controller
             'calls' => $calls,
             'voice_engine' => $announcer->engine(),
             'recent' => $recent,
-            'services' => Service::active()->get()->map(fn (Service $s) => [
+            'services' => Service::active()->with(['counters' => fn ($q) => $q->where('is_active', true)->orderBy('id')])->get()->map(fn (Service $s) => [
                 'id' => $s->id,
                 'code' => $s->code,
                 'name' => $s->name,
@@ -77,7 +77,18 @@ class DisplayController extends Controller
                     'lane' => $t->lane->value,
                     'counter' => $t->counter?->spoken_name ?? $t->counter?->name,
                 ])->values(),
-                'next' => ($waiting->get($s->id) ?? collect())->take(5)->pluck('code'),
+                'windows' => $s->counters->map(function ($c) use ($active, $s) {
+                    $t = ($active->get($s->id) ?? collect())->firstWhere('counter_id', $c->id);
+
+                    return [
+                        'id' => $c->id,
+                        'name' => $c->spoken_name ?: $c->name,
+                        'code' => $t?->code,
+                        'lane' => $t?->lane->value,
+                        'status' => $t?->status->value,
+                    ];
+                })->values(),
+                'next' => ($waiting->get($s->id) ?? collect())->take(8)->pluck('code'),
                 'waiting_total' => ($waiting->get($s->id) ?? collect())->count(),
             ]),
             'server_time' => now()->toIso8601String(),

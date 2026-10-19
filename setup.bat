@@ -45,7 +45,8 @@ if errorlevel 1 ( echo [ERROR] Database migration failed. & goto :fail )
 echo [OK] Database tables and accounts
 
 rem ---- 5. Natural female voice for the TV (optional, needs internet) ----
-call "%~dp0install-voice.bat" /quiet || echo [!]  Voice not installed. The TV will use the browser voice. Run install-voice.bat later.
+call "%~dp0install-kokoro.bat" /quiet || echo [!]  Kokoro voice not installed. Run install-kokoro.bat later.
+if not exist "%~dp0tools\kokoro\model\voices.bin" call "%~dp0install-voice.bat" /quiet
 
 rem ---- 6. Firewall (needs "Run as administrator") ----
 netsh advfirewall firewall show rule name="Malasakit Queue 88" >nul 2>&1 || (
@@ -62,7 +63,7 @@ echo.
 echo ==========================================================
 echo   DONE! Now run start.bat
 echo   Counter logins (password: changeme):
-echo     doh1  dswd1  phic1  pagcor1  admin
+echo     doh1  dswd1  phic1  admin
 echo ==========================================================
 pause
 exit /b 0

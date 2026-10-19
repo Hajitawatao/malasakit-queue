@@ -24,6 +24,7 @@ Artisan::command('voice:worker {--ahead=3 : waiting tickets to prepare per lane}
 
     while (true) {
         try {
+            Cache::put('tts:worker:heartbeat', time(), 120); // the TV checks this
             $engine = $announcer->engine();
             if ($engine !== $lastEngine) {
                 $this->line('[' . now()->format('H:i:s') . "] Engine: {$engine}");

@@ -93,11 +93,16 @@
     <button v-if="!started" class="start" type="button" @click="start">
       <span>Tap anywhere to start the display and voice</span>
       <small>{{ voiceLabel }}</small>
-      <small v-if="snapshot.voice_engine === 'browser'" class="hint">
+      <small v-if="snapshot.voice_installed && snapshot.voice_installed !== 'browser' && !snapshot.voice_worker" class="hint">
+        The VOICE window is not running on the server PC. Run start.bat again to use the {{ snapshot.voice_installed }} voice.
+      </small>
+      <small v-else-if="snapshot.voice_engine === 'browser'" class="hint">
         For a better voice, run install-kokoro.bat on the server PC.
       </small>
     </button>
-    <button v-if="started" class="test-voice" type="button" @click="testVoice">Test voice</button>
+    <button v-if="started" class="test-voice" type="button" @click="testVoice">
+      Test voice<template v-if="snapshot.voice_worker === false && snapshot.voice_installed !== 'browser'"> · voice worker off</template>
+    </button>
     <div v-if="offline" class="offline">Cannot reach the queue server. Retrying…</div>
   </main>
 </template>

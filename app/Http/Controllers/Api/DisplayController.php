@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\Ticket;
 use App\Services\Announcer;
+use Illuminate\Support\Facades\Cache;
 
 class DisplayController extends Controller
 {
@@ -63,9 +64,16 @@ class DisplayController extends Controller
                 'time' => $t->called_at->timezone(config('queue_system.timezone'))->format('g:i A'),
             ]);
 
+        // Voice files are made by the voice worker. If it is not running, tell the TV to
+        // use the browser voice right away instead of waiting for files that never come.
+        $installed = $announcer->engine();
+        $workerAlive = (int) Cache::get('tts:worker:heartbeat', 0) >= time() - 20;
+
         return [
             'calls' => $calls,
-            'voice_engine' => $announcer->engine(),
+            'voice_engine' => $workerAlive ? $installed : 'browser',
+            'voice_installed' => $installed,
+            'voice_worker' => $workerAlive,
             'recent' => $recent,
             'services' => Service::active()->with(['counters' => fn ($q) => $q->where('is_active', true)->orderBy('id')])->get()->map(fn (Service $s) => [
                 'id' => $s->id,

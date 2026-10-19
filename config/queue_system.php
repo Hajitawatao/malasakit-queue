@@ -14,8 +14,8 @@ return [
     'max_recalls' => 3,             // pagkatapos nito, i-mark as no-show
     'timezone' => 'Asia/Manila',
 
-    // TV voice. ElevenLabs is used when ELEVENLABS_API_KEY is set (run setup-elevenlabs.bat);
-    // otherwise Piper (offline, install-voice.bat); otherwise the browser voice.
+    // TV voice, best available first: ElevenLabs (if ELEVENLABS_API_KEY is set),
+    // Kokoro (install-kokoro.bat), Piper (install-voice.bat), then the browser voice.
     'tts' => [
         'elevenlabs' => [
             'key' => env('ELEVENLABS_API_KEY'),
@@ -26,6 +26,14 @@ return [
             'speed' => env('ELEVENLABS_SPEED', 1.0),
             'timeout' => env('ELEVENLABS_TIMEOUT', 8),
             'base_url' => env('ELEVENLABS_BASE_URL', 'https://api.elevenlabs.io'),
+        ],
+        // Kokoro (offline neural voice) via sherpa-onnx. Installed by install-kokoro.bat.
+        'kokoro' => [
+            'exe' => env('KOKORO_EXE', base_path('tools/kokoro/bin/sherpa-onnx-offline-tts' . (PHP_OS_FAMILY === 'Windows' ? '.exe' : ''))),
+            'model_dir' => env('KOKORO_MODEL_DIR', base_path('tools/kokoro/model')),
+            'voice' => env('KOKORO_VOICE', 'af_heart'), // female: af_heart, af_bella, af_sarah, af_nicole, bf_emma ...
+            'speed' => env('KOKORO_SPEED', 1.0),        // 1.0 = normal; 0.9 = a little slower
+            'threads' => env('KOKORO_THREADS', 4),
         ],
         'piper' => env('PIPER_PATH', base_path('tools/piper/piper/' . (PHP_OS_FAMILY === 'Windows' ? 'piper.exe' : 'piper'))),
         'model' => env('PIPER_MODEL', base_path('tools/piper/voice.onnx')),

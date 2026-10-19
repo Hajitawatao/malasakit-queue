@@ -1,10 +1,10 @@
 /**
  * Call announcer for the TV.
  *
- * 1. Piper (preferred): the server renders each call as a WAV in a female
- *    neural voice, offline. Installed once with install-voice.bat. The call
- *    arrives with an `audio` URL and we just play it.
- * 2. Browser voice (fallback, when Piper is not installed): Web Speech API,
+ * 1. Server voice file (preferred): the voice worker renders each call with
+ *    ElevenLabs, Kokoro or Piper. The call arrives with an `audio` URL and we
+ *    just play it.
+ * 2. Browser voice (fallback, when no file is ready): Web Speech API,
  *    restricted to FEMALE voices, one straight English line.
  *
  * Announcements are queued, so two windows calling at once never overlap.
@@ -85,7 +85,8 @@ async function playChime() {
   } catch {}
 }
 
-async function say(t) {
+async function say(t, onStart) {
+  try { onStart?.() } catch {}
   await playChime()
   if (t.audio) {
     try {
@@ -103,14 +104,16 @@ async function drain() {
   if (busy) return
   busy = true
   while (queue.length) {
-    await say(queue.shift())
+    const { call, onStart } = queue.shift()
+    await say(call, onStart)
     await new Promise((r) => setTimeout(r, 700))
   }
   busy = false
 }
 
-export function announce(call) {
-  queue.push(call)
+/** Queue a call. onStart runs when this call's chime starts (used to show the flash). */
+export function announce(call, onStart) {
+  queue.push({ call, onStart })
   drain()
 }
 

@@ -18,8 +18,6 @@ use Illuminate\Validation\ValidationException;
  */
 class QueueCaller
 {
-    public function __construct(private Announcer $announcer) {}
-
     /**
      * Tawagin ang susunod na pasyente.
      * - Kapag may $lane, sa lane na iyon lang kukuha (hal. "Fast Lane Call Next" button).
@@ -75,7 +73,6 @@ class QueueCaller
         }
 
         $ticket->load('service', 'counter');
-        $this->announcer->prepare($ticket); // voice file ready before the TV sees the call
         QueueUpdated::dispatch($serviceId);
         TicketCalled::dispatch($ticket);
 
@@ -93,7 +90,6 @@ class QueueCaller
         }
 
         $ticket->load('service', 'counter');
-        $this->announcer->prepare($ticket); // cached after the first call, so instant
         $ticket->increment('recall_count');
         $ticket->update(['called_at' => now()]);
 

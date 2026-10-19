@@ -20,6 +20,7 @@
 /vendor
 /composer.phar
 /tools/piper/
+/tools/kokoro/
 /tools/cacert.pem
 /public/tts/
 Homestead.json

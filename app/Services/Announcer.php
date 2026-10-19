@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\Lane;
+use App\Models\Counter;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -9,54 +11,66 @@ use Illuminate\Support\Facades\Log;
 /**
  * Turns a call into a spoken audio file for the TV.
  *
- * Engines, in order:
- *   1. ElevenLabs (cloud, paid) — when ELEVENLABS_API_KEY is set. Default voice: Kristen.
- *   2. Piper (offline, free)   — when install-voice.bat has been run.
- *   3. Browser voice           — handled by the TV itself when no file exists.
+ * Engines, best first (the first one that is set up is used):
+ *   1. ElevenLabs (cloud, paid)  — when ELEVENLABS_API_KEY is set (setup-elevenlabs.bat).
+ *   2. Kokoro (offline, free)    — when install-kokoro.bat has been run. Default voice af_heart.
+ *   3. Piper (offline, free)     — when install-voice.bat has been run.
+ *   4. Browser voice             — handled by the TV itself when no file exists.
  *
  * Every sentence is generated once and cached in public/tts/. Ticket numbers reset
- * daily, so "F 12 ... DSWD, Window 1" is the same file every day and ElevenLabs
- * credits are only spent the first time a sentence is ever spoken.
+ * daily, so "F 12 ... DSWD, Window 1" is the same file every day.
  *
- * Audio is generated when the counter calls (prepare()), never while the TV polls,
- * so the single-threaded web server is not held up by the TV.
+ * Files are made by the voice worker (php artisan voice:worker, started by start.bat),
+ * never inside a web request, so the single-threaded web server never waits for audio.
  */
 class Announcer
 {
     private const ELEVEN_DOWN_KEY = 'tts:elevenlabs:down';
 
+    /** Kokoro v1.0 speaker ids (read from the model's metadata). */
+    private const KOKORO_VOICES = [
+        'af_alloy' => 0, 'af_aoede' => 1, 'af_bella' => 2, 'af_heart' => 3, 'af_jessica' => 4,
+        'af_kore' => 5, 'af_nicole' => 6, 'af_nova' => 7, 'af_river' => 8, 'af_sarah' => 9,
+        'af_sky' => 10, 'bf_alice' => 20, 'bf_emma' => 21, 'bf_isabella' => 22, 'bf_lily' => 23,
+    ];
+
+    // ---- what is said ----------------------------------------------------
+
     /** "Now calling number F 12. Please proceed to D S W D, Window 1." */
     public function textFor(Ticket $ticket): string
     {
         $ticket->loadMissing('service', 'counter');
-        $service = $ticket->service?->spoken_name ?: $ticket->service?->name;
-        $window = $ticket->counter?->spoken_name ?: $ticket->counter?->name;
 
+        return $this->sentence($ticket->lane, $ticket->number, $ticket->service?->spoken_name ?: $ticket->service?->name,
+            $ticket->counter?->spoken_name ?: $ticket->counter?->name);
+    }
+
+    /** Same sentence for a ticket that is still waiting, as if called at $counter. */
+    public function textForWaiting(Ticket $ticket, Counter $counter): string
+    {
+        $counter->loadMissing('service');
+
+        return $this->sentence($ticket->lane, $ticket->number, $counter->service?->spoken_name ?: $counter->service?->name,
+            $counter->spoken_name ?: $counter->name);
+    }
+
+    public function sentence(Lane $lane, int $number, ?string $service, ?string $window): string
+    {
         return trim(sprintf(
             'Now calling number %s %d. Please proceed to %s.',
-            $ticket->lane->prefix(),
-            $ticket->number,
+            $lane->prefix(),
+            $number,
             implode(', ', array_filter([$service, $window]))
         ));
     }
 
-    /** Generate (if needed) and cache the audio for this ticket. Called on call/recall. */
-    public function prepare(Ticket $ticket): ?string
-    {
-        try {
-            return $this->audioFor($this->textFor($ticket));
-        } catch (\Throwable $e) {
-            Log::warning('Announcer failed', ['error' => $e->getMessage()]);
+    // ---- files -----------------------------------------------------------
 
-            return null;
-        }
-    }
-
-    /** Public URL of an already generated file for this text, or null. Never generates. */
+    /** Public URL of an already made file for this text (best engine first), or null. Never generates. */
     public function cachedAudio(string $text): ?string
     {
-        foreach ($this->candidates($text) as [$engine, $file]) {
-            if (is_file($this->dir() . DIRECTORY_SEPARATOR . $file)) {
+        foreach ($this->candidates($text) as [, $file]) {
+            if (is_file($this->path($file))) {
                 return '/tts/' . $file;
             }
         }
@@ -64,25 +78,39 @@ class Announcer
         return null;
     }
 
-    /** Public URL for this text, generating it with the best available engine. */
+    /** True when this text already has a file from the best engine available right now. */
+    public function hasPreferred(string $text): bool
+    {
+        $first = $this->candidates($text)[0] ?? null;
+
+        return $first && is_file($this->path($first[1]));
+    }
+
+    /** Public URL for this text, generating it with the best engine that works. */
     public function audioFor(string $text): ?string
     {
         if (! $this->ensureDir()) {
             return null;
         }
 
-        // Best engine first; a sentence made by Piper during an outage is upgraded
-        // to ElevenLabs the next time it is called and the API works again.
+        // Best engine first. A sentence made by a lower engine (e.g. during an outage)
+        // is upgraded the next time it is requested and the better engine works.
         foreach ($this->candidates($text) as [$engine, $file]) {
-            $path = $this->dir() . DIRECTORY_SEPARATOR . $file;
+            $path = $this->path($file);
             if (is_file($path)) {
                 return '/tts/' . $file;
             }
-            $ok = match ($engine) {
-                'elevenlabs' => $this->elevenLabs($text, $path),
-                'piper' => $this->piper($text, $path),
-                default => false,
-            };
+            try {
+                $ok = match ($engine) {
+                    'elevenlabs' => $this->elevenLabs($text, $path),
+                    'kokoro' => $this->kokoro($text, $path),
+                    'piper' => $this->piper($text, $path),
+                    default => false,
+                };
+            } catch (\Throwable $e) {
+                Log::warning("TTS {$engine} crashed", ['error' => $e->getMessage()]);
+                $ok = false;
+            }
             if ($ok) {
                 return '/tts/' . $file;
             }
@@ -94,11 +122,7 @@ class Announcer
     /** Which engine new announcements will use right now. */
     public function engine(): string
     {
-        if ($this->elevenLabsReady()) {
-            return 'elevenlabs';
-        }
-
-        return $this->piperReady() ? 'piper' : 'browser';
+        return $this->engines()[0] ?? 'browser';
     }
 
     public function elevenLabsConfigured(): bool
@@ -108,20 +132,44 @@ class Announcer
 
     // ------------------------------------------------------------------
 
+    /** @return string[] engines that are set up, best first */
+    private function engines(): array
+    {
+        $list = [];
+        if ($this->elevenLabsReady()) {
+            $list[] = 'elevenlabs';
+        }
+        if ($this->kokoroReady()) {
+            $list[] = 'kokoro';
+        }
+        if ($this->piperReady()) {
+            $list[] = 'piper';
+        }
+
+        return $list;
+    }
+
     /** @return array<int, array{0:string,1:string}> [engine, filename] in preference order */
     private function candidates(string $text): array
     {
         $list = [];
-        if ($this->elevenLabsReady()) {
-            $c = config('queue_system.tts.elevenlabs');
-            $list[] = ['elevenlabs', 'el-' . substr(sha1("{$c['voice']}|{$c['model']}|{$c['stability']}|{$c['speed']}|{$text}"), 0, 20) . '.mp3'];
-        }
-        if ($this->piperReady()) {
-            $model = (string) config('queue_system.tts.model');
-            $list[] = ['piper', 'pp-' . substr(sha1($model . '|' . filesize($model) . '|' . $text), 0, 20) . '.wav'];
+        foreach ($this->engines() as $engine) {
+            $list[] = [$engine, match ($engine) {
+                'elevenlabs' => 'el-' . $this->hash(config('queue_system.tts.elevenlabs'), ['key', 'base_url', 'timeout'], $text) . '.mp3',
+                'kokoro' => 'kk-' . $this->hash(config('queue_system.tts.kokoro'), ['exe', 'model_dir', 'threads'], $text) . '.wav',
+                'piper' => 'pp-' . substr(sha1(config('queue_system.tts.model') . '|' . @filesize(config('queue_system.tts.model')) . '|' . $text), 0, 20) . '.wav',
+            }];
         }
 
         return $list;
+    }
+
+    private function hash(array $config, array $ignore, string $text): string
+    {
+        $parts = array_diff_key($config, array_flip($ignore));
+        ksort($parts);
+
+        return substr(sha1(json_encode($parts) . '|' . $text), 0, 20);
     }
 
     private function elevenLabsReady(): bool
@@ -129,9 +177,88 @@ class Announcer
         return $this->elevenLabsConfigured() && function_exists('curl_init') && ! Cache::get(self::ELEVEN_DOWN_KEY);
     }
 
+    private function kokoroReady(): bool
+    {
+        $c = config('queue_system.tts.kokoro');
+
+        return is_file($c['exe']) && is_file($c['model_dir'] . '/model.int8.onnx') && is_file($c['model_dir'] . '/voices.bin');
+    }
+
     private function piperReady(): bool
     {
         return is_file((string) config('queue_system.tts.piper')) && is_file((string) config('queue_system.tts.model'));
+    }
+
+    // ---- engines ---------------------------------------------------------
+
+    private function kokoro(string $text, string $path): bool
+    {
+        $c = config('queue_system.tts.kokoro');
+        $m = rtrim($c['model_dir'], '/\\');
+        $sid = self::KOKORO_VOICES[$c['voice']] ?? (is_numeric($c['voice']) ? (int) $c['voice'] : 3);
+        $tmp = $path . '.part.wav';
+        $lexicon = str_starts_with((string) $c['voice'], 'b') ? 'lexicon-gb-en.txt' : 'lexicon-us-en.txt'; // British voices
+
+        $cmd = [
+            $c['exe'],
+            '--kokoro-model=' . $m . DIRECTORY_SEPARATOR . 'model.int8.onnx',
+            '--kokoro-voices=' . $m . DIRECTORY_SEPARATOR . 'voices.bin',
+            '--kokoro-tokens=' . $m . DIRECTORY_SEPARATOR . 'tokens.txt',
+            '--kokoro-data-dir=' . $m . DIRECTORY_SEPARATOR . 'espeak-ng-data',
+            '--kokoro-lexicon=' . $m . DIRECTORY_SEPARATOR . $lexicon,
+            '--kokoro-lang=en',
+            '--num-threads=' . max(1, (int) $c['threads']),
+            '--sid=' . $sid,
+            '--kokoro-length-scale=' . (1 / max(0.5, (float) $c['speed'])),
+            '--output-filename=' . $tmp,
+            $text,
+        ];
+        return $this->run('Kokoro', $cmd, dirname($c['exe']), null, $tmp, $path);
+    }
+
+    private function piper(string $text, string $path): bool
+    {
+        $exe = (string) config('queue_system.tts.piper');
+        $model = (string) config('queue_system.tts.model');
+        $tmp = $path . '.part.wav';
+
+        $cmd = [$exe, '--model', $model, '--output_file', $tmp];
+        $espeak = dirname($exe) . DIRECTORY_SEPARATOR . 'espeak-ng-data';
+        if (is_dir($espeak)) {
+            array_push($cmd, '--espeak_data', $espeak);
+        }
+
+        return $this->run('Piper', $cmd, dirname($exe), $text . PHP_EOL, $tmp, $path);
+    }
+
+    /** Runs a TTS program that writes $tmp, then moves it to $path. */
+    private function run(string $name, array $cmd, string $cwd, ?string $stdin, string $tmp, string $path): bool
+    {
+        $proc = @proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $cwd);
+        if (! is_resource($proc)) {
+            Log::warning("{$name} could not be started", ['exe' => $cmd[0]]);
+
+            return false;
+        }
+
+        if ($stdin !== null) {
+            fwrite($pipes[0], $stdin);
+        }
+        fclose($pipes[0]);
+        stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $code = proc_close($proc);
+
+        if ($code !== 0 || ! is_file($tmp) || filesize($tmp) < 1000) {
+            @unlink($tmp);
+            Log::warning("{$name} failed", ['code' => $code, 'stderr' => mb_substr((string) $stderr, -600)]);
+
+            return false;
+        }
+
+        return @rename($tmp, $path) || is_file($path);
     }
 
     private function elevenLabs(string $text, string $path): bool
@@ -187,8 +314,7 @@ class Announcer
         $detail = $error ?: mb_substr(is_string($body) ? $body : '', 0, 300);
         Log::warning('ElevenLabs failed', ['status' => $status, 'detail' => $detail]);
 
-        // Bad key, no credits or no internet: stop trying for a while and use Piper,
-        // so counters are not slowed down by a request that keeps failing.
+        // Bad key, no credits or no internet: stop trying for a while and use the next engine.
         if ($status === 0 || $status === 401 || $status === 402 || $status === 429 || $status >= 500
             || str_contains($detail, 'quota') || str_contains($detail, 'credits')) {
             Cache::put(self::ELEVEN_DOWN_KEY, $status ?: 'offline', now()->addMinutes(10));
@@ -197,41 +323,11 @@ class Announcer
         return false;
     }
 
-    private function piper(string $text, string $path): bool
+    // ---- helpers ---------------------------------------------------------
+
+    private function path(string $file): string
     {
-        $exe = (string) config('queue_system.tts.piper');
-        $model = (string) config('queue_system.tts.model');
-        $tmp = $path . '.part.wav';
-        $exeDir = dirname($exe);
-
-        $cmd = [$exe, '--model', $model, '--output_file', $tmp];
-        if (is_dir($exeDir . DIRECTORY_SEPARATOR . 'espeak-ng-data')) {
-            array_push($cmd, '--espeak_data', $exeDir . DIRECTORY_SEPARATOR . 'espeak-ng-data');
-        }
-
-        $proc = @proc_open($cmd, [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $exeDir);
-        if (! is_resource($proc)) {
-            Log::warning('Piper could not be started', ['exe' => $exe]);
-
-            return false;
-        }
-
-        fwrite($pipes[0], $text . PHP_EOL);
-        fclose($pipes[0]);
-        stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $code = proc_close($proc);
-
-        if ($code !== 0 || ! is_file($tmp) || filesize($tmp) < 1000) {
-            @unlink($tmp);
-            Log::warning('Piper failed', ['code' => $code, 'stderr' => mb_substr((string) $stderr, -500)]);
-
-            return false;
-        }
-
-        return @rename($tmp, $path) || is_file($path);
+        return $this->dir() . DIRECTORY_SEPARATOR . $file;
     }
 
     private function dir(): string

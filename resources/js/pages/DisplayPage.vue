@@ -1,5 +1,5 @@
 <template>
-  <main class="tv" :class="{ 'no-rail': !showRail }">
+  <main class="tv" :class="{ 'no-rail': !showRail, dark: theme === 'dark' }">
     <header class="top">
       <img class="seal" :src="'/logos/r1mc.png'" alt="" @error="hideOnError" />
       <div class="org">
@@ -120,8 +120,10 @@ const VOICE_WAIT_MS = 12000 // after this, speak with the browser voice instead
 /*
  * One TV can show a subset of services: /display?services=DOH,DSWD
  * Hide the recent-calls rail on narrow or crowded screens: /display?rail=0
+ * Dark theme: /display?theme=dark (light is the default)
  */
 const params = new URLSearchParams(location.search)
+const theme = params.get('theme') === 'dark' ? 'dark' : 'light'
 const only = (params.get('services') || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
 
 const snapshot = ref({ services: [], calls: [], recent: [], voice_engine: null })
@@ -246,16 +248,47 @@ onUnmounted(() => {
  * with 1 window each and 10 services with 4 windows each both stay readable.
  */
 .tv {
+  /* Light theme (default) */
+  --tv-bg: #e8ecf2;
+  --tv-card: #ffffff;
+  --tv-text: var(--ink);
+  --tv-muted: #5b6b86;
+  --tv-line: #e1e6ee;
+  --tv-chip: #eef1f6;
+  --tv-num: var(--ink);
+  --tv-idle: #c3ccda;
+  --tv-latest-bg: color-mix(in srgb, var(--agency) 12%, #fff);
+  --tv-latest-num: var(--agency);
+  --tv-fresh: #fff0bf;
+  --tv-shadow: 0 1px 0 #d9dfea, 0 10px 22px -18px rgba(14, 24, 56, 0.5);
+
   height: 100vh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: var(--ink);
-  color: #fff;
+  background: var(--tv-bg);
+  color: var(--tv-text);
   overflow: hidden;
 }
 
-/* header */
+/* Dark theme: /display?theme=dark */
+.tv.dark {
+  --tv-bg: var(--ink);
+  --tv-card: var(--ink-2);
+  --tv-text: #fff;
+  --tv-muted: var(--muted-on-dark);
+  --tv-line: var(--ink-3);
+  --tv-chip: var(--ink-3);
+  --tv-num: var(--r1-gold);
+  --tv-idle: var(--ink-3);
+  --tv-latest-bg: color-mix(in srgb, var(--agency) 38%, var(--ink-3));
+  --tv-latest-num: var(--r1-gold);
+  --tv-fresh: rgba(244, 180, 0, 0.18);
+  --tv-shadow: none;
+}
+
+/* header (navy in both themes: R1MC identity) */
 .top {
+  color: #fff;
   display: flex;
   align-items: center;
   gap: 1vw;
@@ -293,7 +326,8 @@ onUnmounted(() => {
   container-type: size;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: var(--ink-2);
+  background: var(--tv-card);
+  box-shadow: var(--tv-shadow);
   border-radius: 1vh;
   overflow: hidden;
   border-top: 1vh solid var(--agency);
@@ -303,11 +337,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 2.2cqw;
   padding: 2.4cqh 3cqw;
-  background: color-mix(in srgb, var(--agency) 30%, var(--ink-2));
+  background: var(--agency);
+  color: #fff;
 }
 .badge { width: clamp(28px, 11cqw, 76px); }
 .board-head h2 { margin: 0; font: 700 clamp(18px, 9cqw, 64px) / 1 var(--display); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.waiting { margin-left: auto; text-align: right; font-size: clamp(11px, 3cqw, 20px); color: var(--muted-on-dark); line-height: 1.1; white-space: nowrap; }
+.waiting { margin-left: auto; text-align: right; font-size: clamp(11px, 3cqw, 20px); color: rgba(255, 255, 255, 0.85); line-height: 1.1; white-space: nowrap; }
 .waiting strong { display: block; font: 700 clamp(18px, 7cqw, 46px) / 1 var(--display); color: #fff; }
 
 /* windows: one row each, the number fills the row */
@@ -327,19 +362,20 @@ onUnmounted(() => {
   align-items: center;
   padding: 0 0 0 2.6cqw;
   border-left: max(4px, 1.4cqw) solid var(--regular);
+  border-radius: 0 0.6cqw 0.6cqw 0;
   min-height: 0;
 }
 .window.fast { border-left-color: var(--fast); }
 .window.priority { border-left-color: var(--priority); }
-.window.idle { border-left-color: var(--ink-3); }
-.w-name { grid-column: 1 / -1; font: 600 clamp(12px, min(5cqw, calc(9cqh / var(--rows))), 30px) var(--text); color: var(--muted-on-dark); }
+.window.idle { border-left-color: var(--tv-idle); }
+.w-name { grid-column: 1 / -1; font: 600 clamp(12px, min(5cqw, calc(9cqh / var(--rows))), 30px) var(--text); color: var(--tv-muted); }
 .w-code {
   font: 700 clamp(28px, min(30cqw, calc(52cqh / var(--rows))), 320px) / 0.9 var(--display);
-  color: var(--r1-gold);
+  color: var(--tv-num);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
 }
-.window.idle .w-code { color: var(--ink-3); font-size: clamp(20px, min(14cqw, calc(26cqh / var(--rows))), 120px); }
+.window.idle .w-code { color: var(--tv-idle); font-size: clamp(20px, min(14cqw, calc(26cqh / var(--rows))), 120px); }
 .w-state {
   justify-self: end;
   align-self: end;
@@ -348,13 +384,13 @@ onUnmounted(() => {
   align-items: flex-end;
   gap: 0.6cqh;
   font-size: clamp(11px, min(3.6cqw, calc(7cqh / var(--rows))), 24px);
-  color: var(--muted-on-dark);
+  color: var(--tv-muted);
   padding-bottom: 1cqh;
 }
 .lane-tag { padding: 0.2em 0.6em; border-radius: 0.4em; background: var(--fast); color: #fff; font-weight: 600; }
 .window.priority .lane-tag { background: var(--priority); color: var(--ink); }
 .window.fresh .w-code { animation: called 1s ease-in-out 4; }
-@keyframes called { 50% { color: #fff; } }
+@keyframes called { 50% { background: var(--tv-fresh); } }
 
 /* next in line */
 .next {
@@ -362,27 +398,28 @@ onUnmounted(() => {
   align-items: center;
   gap: 2cqw;
   padding: 2cqh 3cqw;
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--tv-line);
   min-width: 0;
 }
-.next-label { font-size: clamp(11px, 3.2cqw, 20px); color: var(--muted-on-dark); white-space: nowrap; }
+.next-label { font-size: clamp(11px, 3.2cqw, 20px); color: var(--tv-muted); white-space: nowrap; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; gap: 1.4cqw; overflow: hidden; flex-wrap: nowrap; min-width: 0; }
 .chips li {
   flex: none;
   font: 600 clamp(14px, 5.4cqw, 36px) / 1.2 var(--display);
   padding: 0 0.4em;
   border-radius: 0.2em;
-  background: var(--ink-3);
+  background: var(--tv-chip);
   border-left: 0.18em solid var(--regular);
   font-variant-numeric: tabular-nums;
 }
 .chips li.fast { border-color: var(--fast); }
 .chips li.priority { border-color: var(--priority); }
-.none { font-size: clamp(11px, 3.4cqw, 22px); color: var(--muted-on-dark); }
+.none { font-size: clamp(11px, 3.4cqw, 22px); color: var(--tv-muted); }
 
 /* recent calls */
 .recent {
-  background: var(--ink-2);
+  background: var(--tv-card);
+  box-shadow: var(--tv-shadow);
   border-radius: 1vh;
   padding: 1.6vh 1vw;
   display: flex;
@@ -399,16 +436,16 @@ onUnmounted(() => {
   gap: 0.8vw;
   padding: 0.9vh 0.7vw;
   border-radius: 0.6vh;
-  background: var(--ink-3);
+  background: var(--tv-chip);
   border-left: 0.6vh solid var(--agency);
 }
-.recent li.latest { background: color-mix(in srgb, var(--agency) 38%, var(--ink-3)); }
+.recent li.latest { background: var(--tv-latest-bg); }
 .r-code { font: 700 3.3vh / 1 var(--display); font-variant-numeric: tabular-nums; }
-.recent li.latest .r-code { color: var(--r1-gold); }
+.recent li.latest .r-code { color: var(--tv-latest-num); }
 .r-where { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
 .r-where b, .r-where i { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .r-where b { font-size: 1.9vh; font-weight: 600; }
-.r-where i { font-style: normal; font-size: 1.6vh; color: var(--muted-on-dark); font-variant-numeric: tabular-nums; }
+.r-where i { font-style: normal; font-size: 1.6vh; color: var(--tv-muted); font-variant-numeric: tabular-nums; }
 
 /* legend */
 .legend {
@@ -417,11 +454,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 2vw;
   padding: 1vh 1.6vw;
-  background: var(--ink-2);
+  background: var(--tv-card);
+  border-top: 1px solid var(--tv-line);
   font-size: 1.9vh;
 }
 .legend ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 2.4vw; }
-.legend li { display: flex; align-items: center; gap: 0.6vw; color: var(--muted-on-dark); }
+.legend li { display: flex; align-items: center; gap: 0.6vw; color: var(--tv-muted); }
 .legend b {
   display: inline-grid;
   place-items: center;
@@ -482,10 +520,10 @@ onUnmounted(() => {
   padding: 0.4vh 0.8vw;
   font: 500 1.4vh var(--text);
   background: transparent;
-  color: var(--ink-3);
+  color: var(--tv-idle);
   cursor: pointer;
 }
-.test-voice:hover, .test-voice:focus-visible { color: var(--muted-on-dark); }
+.test-voice:hover, .test-voice:focus-visible { color: var(--tv-muted); }
 .offline {
   position: fixed;
   left: 0;

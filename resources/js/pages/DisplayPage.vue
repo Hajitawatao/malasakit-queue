@@ -52,6 +52,13 @@
             </ol>
             <span v-else class="none">Walang naghihintay</span>
           </footer>
+
+          <footer v-if="s.out?.length" class="next out">
+            <span class="next-label"><b>Out when called</b><i>Lumapit po sa window</i></span>
+            <ol class="chips">
+              <li v-for="c in s.out" :key="c">{{ c }}</li>
+            </ol>
+          </footer>
         </article>
       </section>
 
@@ -77,6 +84,7 @@
         <li class="fast"><b>F</b> Fast lane · Senior, PWD, buntis</li>
         <li class="priority"><b>P</b> Priority · May referral</li>
         <li class="regular"><b>R</b> Regular</li>
+        <li class="outk"><b>O</b> Out when called · Lumapit sa window</li>
       </ul>
       <p>Hintayin po ang pagtawag ng inyong numero.</p>
     </footer>
@@ -261,6 +269,9 @@ onUnmounted(() => {
   --tv-latest-num: var(--agency);
   --tv-fresh: #fff0bf;
   --tv-shadow: 0 1px 0 #d9dfea, 0 10px 22px -18px rgba(14, 24, 56, 0.5);
+  --tv-out-bg: #fff7e8;
+  --tv-out-line: #e8b65c;
+  --tv-out-text: #8a5300;
 
   height: 100vh;
   display: grid;
@@ -284,6 +295,9 @@ onUnmounted(() => {
   --tv-latest-num: var(--r1-gold);
   --tv-fresh: rgba(244, 180, 0, 0.18);
   --tv-shadow: none;
+  --tv-out-bg: rgba(232, 147, 12, 0.1);
+  --tv-out-line: rgba(232, 147, 12, 0.55);
+  --tv-out-text: #f5c76b;
 }
 
 /* header (navy in both themes: R1MC identity) */
@@ -325,7 +339,7 @@ onUnmounted(() => {
 .board {
   container-type: size;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   background: var(--tv-card);
   box-shadow: var(--tv-shadow);
   border-radius: 1vh;
@@ -416,6 +430,18 @@ onUnmounted(() => {
 .chips li.priority { border-color: var(--priority); }
 .none { font-size: clamp(11px, 3.4cqw, 22px); color: var(--tv-muted); }
 
+/* out when called: missed their call, can ask the window to call again */
+.next.out { background: var(--tv-out-bg); border-top: 1px dashed var(--tv-out-line); padding-top: 1.4cqh; padding-bottom: 1.4cqh; }
+.next.out .next-label { display: flex; flex-direction: column; line-height: 1.05; }
+.next.out .next-label b { color: var(--tv-out-text); font-weight: 700; }
+.next.out .next-label i { font-style: normal; font-size: 0.8em; }
+.next.out .chips li {
+  font-size: clamp(12px, 4.4cqw, 30px);
+  background: transparent;
+  border: 0.08em dashed var(--tv-out-line);
+  color: var(--tv-out-text);
+}
+
 /* recent calls */
 .recent {
   background: var(--tv-card);
@@ -472,6 +498,7 @@ onUnmounted(() => {
 }
 .legend .fast b { background: var(--fast); }
 .legend .priority b { background: var(--priority); color: var(--ink); }
+.legend .outk b { background: var(--tv-out-bg); border: 0.2vh dashed var(--tv-out-line); color: var(--tv-out-text); }
 .legend p { margin: 0; font-weight: 600; }
 
 /* call announcement */

@@ -31,5 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('tickets/{ticket}/serve', [CounterController::class, 'serve']);
         Route::post('tickets/{ticket}/done', [CounterController::class, 'done']);
         Route::post('tickets/{ticket}/no-show', [CounterController::class, 'noShow']);
+        Route::post('tickets/{ticket}/out', [CounterController::class, 'out']);
+        Route::post('tickets/{ticket}/call-back', [CounterController::class, 'callBack']);
     });
 });

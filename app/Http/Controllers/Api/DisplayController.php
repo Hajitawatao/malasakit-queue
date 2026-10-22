@@ -31,6 +31,14 @@ class DisplayController extends Controller
             ->get(['id', 'service_id', 'code', 'lane'])
             ->groupBy('service_id');
 
+        // "Out when called": called but not at the window. Shown on the TV so the
+        // patient knows to go to the window and ask to be called again.
+        $out = Ticket::today()
+            ->where('status', TicketStatus::Out)
+            ->orderByDesc('finished_at')
+            ->get(['id', 'service_id', 'code', 'lane'])
+            ->groupBy('service_id');
+
         // Mga kakatawag lang (huling 2 minuto). Ginagamit ng TV para malaman
         // kung ano ang babasahin ng boses; nag-iiba ang called_at kapag ni-recall.
         $calls = Ticket::today()
@@ -97,6 +105,8 @@ class DisplayController extends Controller
                     ];
                 })->values(),
                 'next' => ($waiting->get($s->id) ?? collect())->take(8)->pluck('code'),
+                'out' => ($out->get($s->id) ?? collect())->take(10)->pluck('code'),
+                'out_total' => ($out->get($s->id) ?? collect())->count(),
                 'waiting_total' => ($waiting->get($s->id) ?? collect())->count(),
             ]),
             'server_time' => now()->toIso8601String(),

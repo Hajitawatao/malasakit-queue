@@ -9,6 +9,8 @@ enum TicketStatus: string
     case Serving = 'serving';
     case Done = 'done';
     case NoShow = 'no_show';
+    /** Called but not at the window. Stays in the "Out when called" list until called again. */
+    case Out = 'out';
     case Cancelled = 'cancelled';
 
     /** Mga status na "nasa counter" pa (hindi pa tapos). */

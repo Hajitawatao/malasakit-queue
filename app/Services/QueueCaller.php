@@ -85,7 +85,7 @@ class QueueCaller
 
         if ($ticket->recall_count >= config('queue_system.max_recalls')) {
             throw ValidationException::withMessages([
-                'ticket' => 'Maximum recalls reached. Mark this patient as No-show.',
+                'ticket' => 'Maximum recalls reached. Mark this patient as Out.',
             ]);
         }
 
@@ -96,6 +96,54 @@ class QueueCaller
         TicketCalled::dispatch($ticket, isRecall: true);
 
         return $ticket;
+    }
+
+    /**
+     * Patient was not there when called: park the ticket in "Out when called".
+     * The window is free again; the same ticket number can be called back later.
+     */
+    public function markOut(Ticket $ticket, Counter $counter): Ticket
+    {
+        $this->assertOwnedBy($ticket, $counter);
+        $ticket->update(['status' => TicketStatus::Out, 'finished_at' => now()]);
+        QueueUpdated::dispatch($ticket->service_id);
+
+        return $ticket;
+    }
+
+    /**
+     * Patient came back: call the same ticket again to THIS window.
+     * The window's current patient (if any) is finished first.
+     */
+    public function callBack(Ticket $ticket, Counter $counter, ?User $user = null): Ticket
+    {
+        abort_unless($ticket->service_id === $counter->service_id, 403, 'This ticket belongs to another service.');
+
+        return DB::transaction(function () use ($ticket, $counter, $user) {
+            $ticket = Ticket::whereKey($ticket->id)->lockForUpdate()->first();
+            if ($ticket->status !== TicketStatus::Out) {
+                throw ValidationException::withMessages(['ticket' => 'This ticket is no longer in the Out list.']);
+            }
+
+            Ticket::where('counter_id', $counter->id)
+                ->whereIn('status', TicketStatus::active())
+                ->update(['status' => TicketStatus::Done->value, 'finished_at' => now()]);
+
+            $ticket->update([
+                'status' => TicketStatus::Called,
+                'counter_id' => $counter->id,
+                'served_by' => $user?->id ?? $ticket->served_by,
+                'called_at' => now(),
+                'finished_at' => null,
+                'recall_count' => 0,
+            ]);
+
+            $ticket->load('service', 'counter');
+            QueueUpdated::dispatch($ticket->service_id);
+            TicketCalled::dispatch($ticket, isRecall: true);
+
+            return $ticket;
+        });
     }
 
     public function startServing(Ticket $ticket, Counter $counter): Ticket
